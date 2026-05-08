@@ -1,8 +1,7 @@
 """3D plot builder. Renders X/Y/Z RGB unit-axis vectors plus data scatter."""
 
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from mpl_toolkits import mplot3d  # noqa: F401  (registers the '3d' projection)
+from mpl_toolkits import mplot3d  # type: ignore # noqa: F401  (registers the '3d' projection)
 
 
 def _strip_axis_chrome(ax) -> None:
@@ -22,6 +21,7 @@ def _strip_axis_chrome(ax) -> None:
 
 def _install_camera_clamp(figure: Figure, ax) -> None:
     from . import VIEW_FORMAT
+
     elev_min = VIEW_FORMAT["elev_min"]
     elev_max = VIEW_FORMAT["elev_max"]
 
@@ -64,9 +64,9 @@ def build_scatter_3d_figure(
 
     # Vectors originate at the focus and extend past view_range so that the
     # shafts remain visible from any orbit angle / clamp position.
-    ax.quiver(fx, fy, fz, arrow, 0, 0, color="red",   arrow_length_ratio=0.02)
+    ax.quiver(fx, fy, fz, arrow, 0, 0, color="red", arrow_length_ratio=0.02)
     ax.quiver(fx, fy, fz, 0, arrow, 0, color="green", arrow_length_ratio=0.02)
-    ax.quiver(fx, fy, fz, 0, 0, arrow, color="blue",  arrow_length_ratio=0.02)
+    ax.quiver(fx, fy, fz, 0, 0, arrow, color="blue", arrow_length_ratio=0.02)
 
     xs = [p[1] for p in points]
     ys = [p[2] for p in points]
@@ -78,8 +78,7 @@ def build_scatter_3d_figure(
         for a, b in edges:
             ax_, ay_, az_ = coords[a]
             bx_, by_, bz_ = coords[b]
-            ax.plot([ax_, bx_], [ay_, by_], [az_, bz_],
-                    color="black", linewidth=0.5)
+            ax.plot([ax_, bx_], [ay_, by_], [az_, bz_], color="black", linewidth=0.5)
 
     offset = VIEW_FORMAT["label_offset"]
     for label, x, y, z in points:
@@ -110,8 +109,4 @@ def build_scatter_3d_figure(
 
 
 def show(figure: Figure) -> None:
-    # Register the Figure with pyplot's manager so plt.show() can display it.
-    manager = plt.figure().canvas.manager
-    manager.canvas.figure = figure
-    figure.set_canvas(manager.canvas)
-    plt.show()
+    figure.show()
