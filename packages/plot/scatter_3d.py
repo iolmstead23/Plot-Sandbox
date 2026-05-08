@@ -48,6 +48,7 @@ def _install_camera_clamp(figure: Figure, ax) -> None:
 def build_scatter_3d_figure(
     points: list[tuple[str, float, float, float]],
     *,
+    edges: list[tuple[str, str]] | None = None,
     title: str = "3D Plot of Elements",
     focus: tuple[float, float, float] = (0.0, 0.0, 0.0),
 ) -> Figure:
@@ -71,6 +72,15 @@ def build_scatter_3d_figure(
     ys = [p[2] for p in points]
     zs = [p[3] for p in points]
     ax.scatter(xs, ys, zs, c="tab:blue", s=60, depthshade=True)
+
+    if edges:
+        coords = {p[0]: (p[1], p[2], p[3]) for p in points}
+        for a, b in edges:
+            ax_, ay_, az_ = coords[a]
+            bx_, by_, bz_ = coords[b]
+            ax.plot([ax_, bx_], [ay_, by_], [az_, bz_],
+                    color="black", linewidth=0.5)
+
     offset = VIEW_FORMAT["label_offset"]
     for label, x, y, z in points:
         ax.text(x, y, z + offset, label, ha="center", va="center", fontsize=10)

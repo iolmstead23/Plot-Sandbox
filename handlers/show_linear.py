@@ -10,5 +10,10 @@ from ._compute import points_from_formula
 def show_linear(app) -> None:
     points = points_from_formula(SAMPLE_ELEMENT_RECORDS, formulas.linear)
     state.set_points(points, title="Linear formula")
-    figure = build_scatter_3d_figure(state.points, title=state.title, focus=state.camera_focus)
+    figure = build_scatter_3d_figure(
+        state.points,
+        edges=state.edges,
+        title=state.title,
+        focus=state.camera_focus,
+    )
     app.set_figure(figure)

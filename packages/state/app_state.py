@@ -24,6 +24,17 @@ def generate_sample_points(n: int = sample_size) -> list[tuple[str, float, float
     ]
 
 
+def edges_from_points(
+    points: list[tuple[str, float, float, float]],
+) -> list[tuple[str, str]]:
+    labels = [p[0] for p in points]
+    return [
+        (labels[i], labels[j])
+        for i in range(len(labels))
+        for j in range(i + 1, len(labels))
+    ]
+
+
 # (label, weight, token_count, backlink_count)
 SAMPLE_ELEMENT_RECORDS: list[tuple[str, float, int, int]] = [
     ("A", 1.0, 10, 2),
@@ -39,6 +50,7 @@ class AppState:
 
     def __init__(self) -> None:
         self.points: list[tuple[str, float, float, float]] = generate_sample_points()
+        self.edges: list[tuple[str, str]] = edges_from_points(self.points)
         self.title: str = "3D Plot of Elements"
         # Fixed look-at target. The plot centers this point on screen.
         self.camera_focus: tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -53,6 +65,7 @@ class AppState:
         title: Optional[str] = None,
     ) -> None:
         self.points = list(points)
+        self.edges = edges_from_points(self.points)
         if title is not None:
             self.title = title
 

@@ -43,7 +43,12 @@ def main() -> None:
             title="Weighted formula",
         )
 
-    figure = build_scatter_3d_figure(state.points, title=state.title, focus=state.camera_focus)
+    figure = build_scatter_3d_figure(
+        state.points,
+        edges=state.edges,
+        title=state.title,
+        focus=state.camera_focus,
+    )
 
     if args.cli:
         show(figure)
