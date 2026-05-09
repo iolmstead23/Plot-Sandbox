@@ -55,7 +55,7 @@ class AppState:
         # Fixed look-at target. The plot centers this point on screen.
         self.camera_focus: tuple[float, float, float] = (0.0, 0.0, 0.0)
         # Placeholder — reserved for future camera-position control. Currently
-        # the view direction is driven by VIEW_FORMAT's elev/azim; this slot
+        # the view direction is driven by config.view elev/azim; this slot
         # exists so a later change can swap in a position-based camera mode.
         self.camera_position: tuple[float, float, float] = (5.0, 5.0, 5.0)
 
