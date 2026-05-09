@@ -11,13 +11,22 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import numpy as np
+import matplotlib.patheffects as pe
+from matplotlib.patheffects import AbstractPathEffect
 from matplotlib.figure import Figure
 from mpl_toolkits import mplot3d  # type: ignore # noqa: F401  (registers '3d' projection)
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Text3D
 
 
+def _label_path_effects(stroke_width: float) -> list[AbstractPathEffect]:
+    if stroke_width <= 0.0:
+        return []
+    return [pe.withStroke(linewidth=stroke_width, foreground="white", alpha=0.9)]
+
+
 class _UprightText(Text3D):
     """Text3D that always renders screen-horizontal — overrides view-angle rotation."""
+
     def get_rotation(self) -> float:
         return 0.0
 
@@ -26,7 +35,7 @@ class _UprightText(Text3D):
 class Artists:
     figure: Figure
     ax: Any
-    scatter: Any                 # Path3DCollection
+    scatter: Any  # Path3DCollection
     edge_lines: Line3DCollection
     label_texts: list = field(default_factory=list)
 
@@ -93,10 +102,43 @@ def build_scatter_3d_figure(
     arrow = view_format["axis_length"]
     alr = plot_style["arrow_length_ratio"]
     qlw = plot_style["quiver_linewidth"]
-    qa  = plot_style["quiver_alpha"]
-    ax.quiver(fx, fy, fz, arrow, 0, 0, color="red",   arrow_length_ratio=alr, linewidth=qlw, alpha=qa)
-    ax.quiver(fx, fy, fz, 0, arrow, 0, color="green", arrow_length_ratio=alr, linewidth=qlw, alpha=qa)
-    ax.quiver(fx, fy, fz, 0, 0, arrow, color="blue",  arrow_length_ratio=alr, linewidth=qlw, alpha=qa)
+    qa = plot_style["quiver_alpha"]
+    ax.quiver(
+        fx,
+        fy,
+        fz,
+        arrow,
+        0,
+        0,
+        color="red",
+        arrow_length_ratio=alr,
+        linewidth=qlw,
+        alpha=qa,
+    )
+    ax.quiver(
+        fx,
+        fy,
+        fz,
+        0,
+        arrow,
+        0,
+        color="green",
+        arrow_length_ratio=alr,
+        linewidth=qlw,
+        alpha=qa,
+    )
+    ax.quiver(
+        fx,
+        fy,
+        fz,
+        0,
+        0,
+        arrow,
+        color="blue",
+        arrow_length_ratio=alr,
+        linewidth=qlw,
+        alpha=qa,
+    )
 
     size_scale = plot_style["size_scale"]
     if positions.shape[0] > 0:
@@ -106,7 +148,9 @@ def build_scatter_3d_figure(
         xs = ys = zs = np.zeros(0)
         scatter_sizes = np.zeros(0)
     scatter = ax.scatter(
-        xs, ys, zs,  # type: ignore[arg-type]
+        xs,
+        ys,
+        zs,  # type: ignore[arg-type]
         c="tab:blue",
         s=scatter_sizes,  # type: ignore[arg-type]
         depthshade=depthshade,
@@ -116,11 +160,16 @@ def build_scatter_3d_figure(
         segs = positions[edges]
     else:
         segs = np.zeros((0, 2, 3))
-    edge_lines = Line3DCollection(segs, colors="black", linewidths=plot_style["edge_linewidth"])
+    edge_lines = Line3DCollection(
+        segs, colors="black", linewidths=plot_style["edge_linewidth"]
+    )
     ax.add_collection3d(edge_lines)
 
     offset = view_format["label_offset"]
     fontsize = plot_style["label_fontsize"]
+    label_alpha = plot_style["label_alpha"]
+    label_color = plot_style["label_color"]
+    label_path_effects = _label_path_effects(plot_style["label_stroke_width"])
     label_texts = []
     for i, label in enumerate(labels):
         if i < positions.shape[0]:
@@ -128,9 +177,18 @@ def build_scatter_3d_figure(
         else:
             x, y, z = 0.0, 0.0, 0.0
         t = ax.text(
-            float(x), float(y), float(z) + offset,
-            label, ha="center", va="center", fontsize=fontsize,
+            float(x),
+            float(y),
+            float(z) + offset,
+            label,
+            ha="center",
+            va="center",
+            fontsize=fontsize,
+            alpha=label_alpha,
+            color=label_color,
         )
+        if label_path_effects:
+            t.set_path_effects(label_path_effects)
         t.__class__ = _UprightText
         label_texts.append(t)
 
@@ -149,7 +207,8 @@ def build_scatter_3d_figure(
         roll=view_format["roll"],
     )
     _install_camera_clamp(
-        figure, ax,
+        figure,
+        ax,
         elev_min=view_format["elev_min"],
         elev_max=view_format["elev_max"],
     )
@@ -180,6 +239,9 @@ def update_scatter_3d(
     size_scale = plot_style["size_scale"]
     offset = view_format["label_offset"]
     fontsize = plot_style["label_fontsize"]
+    label_alpha = plot_style["label_alpha"]
+    label_color = plot_style["label_color"]
+    label_path_effects = _label_path_effects(plot_style["label_stroke_width"])
 
     artists.scatter._offsets3d = (
         positions[:, 0],
@@ -199,9 +261,18 @@ def update_scatter_3d(
             i = len(artists.label_texts)
             x, y, z = positions[i]
             t = artists.ax.text(
-                float(x), float(y), float(z) + offset,
-                labels[i], ha="center", va="center", fontsize=fontsize,
+                float(x),
+                float(y),
+                float(z) + offset,
+                labels[i],
+                ha="center",
+                va="center",
+                fontsize=fontsize,
+                alpha=label_alpha,
+                color=label_color,
             )
+            if label_path_effects:
+                t.set_path_effects(label_path_effects)
             t.__class__ = _UprightText
             artists.label_texts.append(t)
 
@@ -213,6 +284,7 @@ def update_scatter_3d(
         t.set_visible(True)
         t.set_position((float(x), float(y)))
         t.set_3d_properties(float(z) + offset, "z")
+        t.set_alpha(label_alpha)
+        t.set_color(label_color)
         if labels is not None and i < len(labels):
             t.set_text(labels[i])
-

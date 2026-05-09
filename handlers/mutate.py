@@ -9,7 +9,6 @@ import numpy as np
 
 from packages.dom import dom
 
-
 _pending: list[Callable[[], None]] = []
 
 # Wired by handlers/tick.py to restart the physics tick when mutations are
@@ -29,10 +28,6 @@ def queue_add_node(weight: float, position: np.ndarray) -> None:
 
 def queue_remove_node(node_id: int) -> None:
     queue(lambda: dom.remove_node(node_id))
-
-
-def queue_set_weight(node_id: int, weight: float) -> None:
-    queue(lambda: dom.set_weight(node_id, weight))
 
 
 def drain() -> bool:

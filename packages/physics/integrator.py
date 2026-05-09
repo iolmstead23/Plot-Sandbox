@@ -11,7 +11,12 @@ All tunable constants are supplied by the caller via `params` and the
 
 import numpy as np
 
-from .forces import central_gravity, pairwise_attraction, pairwise_repulsion
+from .forces import (
+    central_gravity,
+    edge_attraction,
+    pairwise_attraction,
+    pairwise_repulsion,
+)
 
 
 def relax_step(
@@ -19,18 +24,35 @@ def relax_step(
     weights: np.ndarray,
     pinned: np.ndarray,
     *,
+    edges: np.ndarray | None = None,
     dt: float,
     temperature: float,
     params: dict,
 ) -> np.ndarray:
     p = params
 
+    if edges is not None and edges.shape[0] > 0:
+        attract = edge_attraction(
+            positions,
+            weights,
+            edges,
+            k_e=p["k_edge"],
+            soft_core_radius=p["soft_core_radius"],
+        )
+    else:
+        attract = pairwise_attraction(
+            positions,
+            weights,
+            k_a=p["k_attract"],
+            soft_core_radius=p["soft_core_radius"],
+        )
+
     F = (
         central_gravity(positions, weights, k_g=p["k_central"], focus=p["focus"])
-        + pairwise_repulsion(positions, weights, k_r=p["k_repel"],
-                             soft_core_radius=p["soft_core_radius"])
-        + pairwise_attraction(positions, weights, k_a=p["k_attract"],
-                              soft_core_radius=p["soft_core_radius"])
+        + pairwise_repulsion(
+            positions, weights, k_r=p["k_repel"], soft_core_radius=p["soft_core_radius"]
+        )
+        + attract
     )
 
     # Per-node cap on force magnitude (preserves direction, bounds blow-ups).
@@ -41,7 +63,14 @@ def relax_step(
     F[pinned] = 0.0
 
     step = F * dt * temperature
-    step = np.clip(step, -p["max_step"], p["max_step"])
+    # Cap step magnitude per node, preserving direction. Per-axis clipping
+    # would distort direction whenever a single component saturates and is
+    # a known cause of jitter near equilibrium.
+    step_norms = np.linalg.norm(step, axis=1, keepdims=True)
+    step_scale = np.minimum(
+        1.0, p["max_step"] / np.where(step_norms > 0.0, step_norms, 1.0)
+    )
+    step = step * step_scale
     return positions + step
 
 
