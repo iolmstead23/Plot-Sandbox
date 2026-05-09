@@ -1,0 +1,65 @@
+{
+  "physics": {
+    "k_central": 3.0,
+    "k_repel": 6.0,
+    "k_attract": 0.4,
+    "soft_core_radius": 0.6,
+    "max_step": 0.4,
+    "F_max": 200.0,
+    "focus": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "initial_temperature": 1.0,
+    "cooling_factor": 0.98,
+    "min_temperature": 0.05
+  },
+  "simulation": {
+    "node_count": 30,
+    "weight_min": 0.5,
+    "weight_max": 3.0,
+    "spawn_distance": 4.0,
+    "inner_radius_fraction": 0.1,
+    "outer_radius_fraction": 0.9
+  },
+  "tick": {
+    "attraction_radius": 2.5,
+    "dt": 0.05,
+    "equilibrium_threshold": 0.001,
+    "interval_ms": 33
+  },
+  "view": {
+    "elev": 25.0,
+    "azim": -60.0,
+    "roll": 0.0,
+    "elev_min": -75.0,
+    "elev_max": 75.0,
+    "view_range": 5.0,
+    "axis_length": 50.0,
+    "label_offset": 0.4
+  },
+  "plot": {
+    "title": "Knowledge Graph Simulation",
+    "figsize": [
+      10,
+      6
+    ],
+    "size_scale": 1.0,
+    "arrow_length_ratio": 0.02,
+    "quiver_linewidth": 0.6,
+    "quiver_alpha": 0.35,
+    "label_fontsize": 10,
+    "edge_linewidth": 0.5
+  },
+  "dom": {
+    "weight_to_size": 40.0
+  },
+  "ui": {
+    "window_title": "3D Plot",
+    "geometry": "900x600",
+    "button_width": 14,
+    "button_padx": 8,
+    "button_pady": 6
+  }
+}

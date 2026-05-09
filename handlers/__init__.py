@@ -1,27 +1,30 @@
-"""Button handlers — orchestration glue between UI events, state, spatial, and plot.
+"""Button handlers + tick orchestrator — the only layer that bridges packages.
 
-Each handler has signature `(app) -> None`. The UI calls `handler(app_instance)` when its
-button is clicked. Handlers read/write app state via the `state` singleton, then call
-`app.set_figure(...)` to update the view.
+Each button handler has signature `(app) -> None`. The Tk button calls
+`handler(app_instance)` on click. Handlers either mutate DOM directly
+(synchronous, instant) or enqueue mutations (drained between physics steps).
 """
 
-from ._compute import points_from_formula, records_to_elements
-from .show_linear import show_linear
-from .show_sample import show_sample
-from .show_weighted import show_weighted
+from .add_random_node import add_random_node
+from .randomize_weights import randomize_weights
+from .remove_random_node import remove_random_node
+from .reseed import reseed, seed_physics_dom
+from .tick import physics_tick
 
 
 BUTTON_HANDLERS = [
-    ("Sample", show_sample),
-    ("Linear", show_linear),
-    ("Weighted", show_weighted),
+    ("New Sim",   reseed),
+    ("Add Node",  add_random_node),
+    ("Remove",    remove_random_node),
+    ("Randomize", randomize_weights),
 ]
 
 __all__ = [
     "BUTTON_HANDLERS",
-    "points_from_formula",
-    "records_to_elements",
-    "show_linear",
-    "show_sample",
-    "show_weighted",
+    "add_random_node",
+    "physics_tick",
+    "randomize_weights",
+    "remove_random_node",
+    "reseed",
+    "seed_physics_dom",
 ]
