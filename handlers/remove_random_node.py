@@ -6,7 +6,6 @@ from packages.dom import dom
 
 from . import mutate
 
-
 _rng = np.random.default_rng()
 
 

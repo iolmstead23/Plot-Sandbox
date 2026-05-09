@@ -1,19 +1,17 @@
 {
   "physics": {
-    "k_central": 3.0,
-    "k_repel": 6.0,
-    "k_attract": 0.4,
+    "k_central": 2.0,
+    "k_repel": 10.0,
+    "k_attract": 0.8,
     "soft_core_radius": 0.6,
     "max_step": 0.4,
     "F_max": 200.0,
-    "focus": [
-      0.0,
-      0.0,
-      0.0
-    ],
+    "focus": [0.0, 0.0, 0.0],
     "initial_temperature": 1.0,
     "cooling_factor": 0.98,
-    "min_temperature": 0.05
+    "min_temperature": 0.05,
+    "k_edge": 0.08,
+    "damping": 0.5
   },
   "simulation": {
     "node_count": 30,
@@ -21,7 +19,8 @@
     "weight_max": 3.0,
     "spawn_distance": 4.0,
     "inner_radius_fraction": 0.1,
-    "outer_radius_fraction": 0.9
+    "outer_radius_fraction": 0.9,
+    "dims": 3
   },
   "tick": {
     "attraction_radius": 2.5,
@@ -35,21 +34,21 @@
     "roll": 0.0,
     "elev_min": -75.0,
     "elev_max": 75.0,
-    "view_range": 5.0,
+    "view_range": 10.0,
     "axis_length": 50.0,
     "label_offset": 0.4
   },
   "plot": {
     "title": "Knowledge Graph Simulation",
-    "figsize": [
-      10,
-      6
-    ],
+    "figsize": [10, 6],
     "size_scale": 1.0,
     "arrow_length_ratio": 0.02,
     "quiver_linewidth": 0.6,
     "quiver_alpha": 0.35,
     "label_fontsize": 10,
+    "label_alpha": 0.6,
+    "label_color": "#444444",
+    "label_stroke_width": 2.5,
     "edge_linewidth": 0.5
   },
   "dom": {

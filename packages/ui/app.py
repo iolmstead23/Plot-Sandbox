@@ -12,9 +12,12 @@ from typing import Callable, Optional
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-
 ButtonHandler = Callable[["App"], None]
 ButtonSpec = tuple[str, ButtonHandler]
+
+SliderCallback = Callable[["App", float], None]
+# (label, initial, min, max, step, on_release)
+SliderSpec = tuple[str, float, float, float, float, SliderCallback]
 
 
 class App(tk.Tk):
@@ -24,7 +27,7 @@ class App(tk.Tk):
         buttons: Optional[list[ButtonSpec]] = None,
         *,
         sample_size: int,
-        params: Optional[dict] = None,
+        sliders: Optional[list[SliderSpec]] = None,
         window_title: str = "3D Plot",
         geometry: str = "900x600",
         button_width: int = 14,
@@ -35,12 +38,33 @@ class App(tk.Tk):
         self.title(window_title)
         self.geometry(geometry)
 
-        self._params = params
         self._overlay = tk.Label(self, text=self._build_banner(sample_size))
         self._overlay.pack(side="bottom", fill="x")
 
         sidebar = tk.Frame(self)
         sidebar.pack(side="left", fill="y")
+
+        # Pack the slider section first with side="bottom" so buttons stack
+        # from the top down and the sliders stay anchored at the sidebar floor.
+        if sliders:
+            slider_frame = tk.Frame(sidebar, bd=1, relief="groove")
+            slider_frame.pack(side="bottom", fill="x", padx=4, pady=6)
+            for label, init, lo, hi, step, on_release in sliders:
+                tk.Label(slider_frame, text=label).pack(anchor="w", padx=2)
+                scale = tk.Scale(
+                    slider_frame,
+                    from_=lo,
+                    to=hi,
+                    resolution=step,
+                    orient="horizontal",
+                )
+                scale.set(init)
+                scale.bind(
+                    "<ButtonRelease-1>",
+                    lambda _e, s=scale, cb=on_release: cb(self, float(s.get())),
+                )
+                scale.pack(fill="x", padx=2, pady=(0, 4))
+
         for label, handler in buttons or []:
             tk.Button(
                 sidebar,
@@ -94,12 +118,6 @@ class App(tk.Tk):
         parts: list[str] = [f"n={n}"]
         if temperature is not None:
             parts.append(f"T={temperature:.3f}")
-        if self._params:
-            p = self._params
-            parts.append(
-                f"k_g={p['k_g']}  k_r={p['k_r']}  k_a={p['k_a']}"
-                f"  r0={p['r0']}  R={p['R']}  dt={p['dt']}"
-            )
         parts.append("X (Red)  Y (Green)  Z (Blue)")
         return "  |  ".join(parts)
 
@@ -148,7 +166,7 @@ def launch(
     buttons: Optional[list[ButtonSpec]] = None,
     *,
     sample_size: int,
-    params: Optional[dict] = None,
+    sliders: Optional[list[SliderSpec]] = None,
     artists=None,
     on_ready: Optional[Callable[["App"], None]] = None,
     window_title: str = "3D Plot",
@@ -161,7 +179,7 @@ def launch(
         figure,
         buttons=buttons,
         sample_size=sample_size,
-        params=params,
+        sliders=sliders,
         window_title=window_title,
         geometry=geometry,
         button_width=button_width,

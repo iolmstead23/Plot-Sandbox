@@ -11,30 +11,44 @@ import numpy as np
 from packages.config import config
 from packages.dom import dom
 from packages.physics import cool, relax_step
-from packages.plot import update_scatter_3d
+from packages.plot import project_to_3d, update_scatter_3d
 
 from . import mutate
 
-
 # Module-level tick state.
 _temperature: float = config.physics.initial_temperature
-_app                = None   # set each tick so callbacks can restart if paused
+_app = None  # set each tick so callbacks can restart if paused
+_prev_step: np.ndarray | None = None  # cached step for momentum-style smoothing
 
-# Physics params dict built once from config — passed to relax_step each tick.
-_physics_params: dict = {
-    "k_central":        config.physics.k_central,
-    "k_repel":          config.physics.k_repel,
-    "k_attract":        config.physics.k_attract,
-    "soft_core_radius": config.physics.soft_core_radius,
-    "max_step":         config.physics.max_step,
-    "F_max":            config.physics.F_max,
-    "focus":            np.array(config.physics.focus),
-}
+# Focus is a (dims,) vector; pad the configured 3-vector with zeros for dims > 3.
+_focus = np.zeros(config.simulation.dims, dtype=np.float64)
+_focus[: min(3, config.simulation.dims)] = np.asarray(
+    config.physics.focus, dtype=np.float64
+)[: min(3, config.simulation.dims)]
+
+
+def _build_physics_params() -> dict:
+    # Built per tick so live edits to config.physics (e.g. via the UI sliders)
+    # take effect on the next step without any cache invalidation plumbing.
+    p = config.physics
+    return {
+        "k_central": p.k_central,
+        "k_repel": p.k_repel,
+        "k_attract": p.k_attract,
+        "k_edge": p.k_edge,
+        "soft_core_radius": p.soft_core_radius,
+        "max_step": p.max_step,
+        "F_max": p.F_max,
+        "focus": _focus,
+    }
 
 
 def reheat() -> None:
-    global _temperature
+    global _temperature, _prev_step
     _temperature = config.physics.initial_temperature
+    # Drop momentum on a reheat so a structural mutation doesn't carry stale
+    # velocity from the prior topology into the new one.
+    _prev_step = None
 
 
 def _on_dom_change(_dom) -> None:
@@ -48,12 +62,12 @@ def _on_mutation_enqueued() -> None:
 
 
 # Wire both cascade seams once at import time.
-dom.on_change      = _on_dom_change
-mutate.on_enqueue  = _on_mutation_enqueued
+dom.on_change = _on_dom_change
+mutate.on_enqueue = _on_mutation_enqueued
 
 
 def physics_tick(app) -> None:
-    global _temperature, _app
+    global _temperature, _app, _prev_step
     _app = app
 
     # Drain queued mutations before the force computation so array reshapes
@@ -63,22 +77,41 @@ def physics_tick(app) -> None:
     converged = False
     if dom.n > 0:
         new_pos = relax_step(
-            dom.positions, dom.weights, dom.pinned,
+            dom.positions,
+            dom.weights,
+            dom.pinned,
+            edges=dom.edges,
             dt=config.tick.dt,
             temperature=_temperature,
-            params=_physics_params,
+            params=_build_physics_params(),
         )
-        max_disp = float(np.linalg.norm(new_pos - dom.positions, axis=1).max())
-        converged = max_disp < config.tick.equilibrium_threshold
-        dom._set_positions(new_pos)
+        proposed_step = new_pos - dom.positions
 
-    edges = dom.pairs_within_radius(config.tick.attraction_radius)
+        # Momentum-style smoothing: blend with the previous step so frame-to-
+        # frame motion is visually continuous and not jittery near equilibrium.
+        # Reset whenever the array shape changed (add/remove node).
+        damping = config.physics.damping
+        if (
+            _prev_step is not None
+            and _prev_step.shape == proposed_step.shape
+            and damping > 0.0
+        ):
+            smoothed_step = (1.0 - damping) * proposed_step + damping * _prev_step
+        else:
+            smoothed_step = proposed_step
+        _prev_step = smoothed_step
+
+        final_pos = dom.positions + smoothed_step
+        max_disp = float(np.linalg.norm(smoothed_step, axis=1).max())
+        converged = max_disp < config.tick.equilibrium_threshold
+        dom._set_positions(final_pos)
+
     if app.artists is not None:
         update_scatter_3d(
             app.artists,
-            dom.positions,
+            project_to_3d(dom.positions),
             dom.sizes,
-            edges,
+            dom.edges,
             labels=list(dom.labels),
             view_format=vars(config.view),
             plot_style=vars(config.plot),

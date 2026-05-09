@@ -15,10 +15,13 @@ class DOM:
     def __init__(self) -> None:
         # Configurable at startup by main.py via dom.weight_to_size = config.dom.weight_to_size.
         self.weight_to_size: float = 40.0
-        self.positions: np.ndarray = np.zeros((0, 3), dtype=np.float64)
-        self.weights:   np.ndarray = np.zeros((0,),   dtype=np.float64)
-        self.pinned:    np.ndarray = np.zeros((0,),   dtype=bool)
-        self.labels:    list[str] = []
+        # Spatial dimensionality. Set by main.py from config.simulation.dims before any seeding.
+        self.dims: int = 3
+        self.positions: np.ndarray = np.zeros((0, self.dims), dtype=np.float64)
+        self.weights: np.ndarray = np.zeros((0,), dtype=np.float64)
+        self.pinned: np.ndarray = np.zeros((0,), dtype=bool)
+        self.labels: list[str] = []
+        self.edges: np.ndarray = np.zeros((0, 2), dtype=np.int64)
 
         self._id_to_index: dict[int, int] = {}
         self._index_to_id: list[int] = []
@@ -67,10 +70,12 @@ class DOM:
         self._next_id += 1
         idx = self.n
 
-        pos_row = np.asarray(position, dtype=np.float64).reshape(1, 3)
+        pos_row = np.asarray(position, dtype=np.float64).reshape(1, self.dims)
         self.positions = np.concatenate([self.positions, pos_row], axis=0)
-        self.weights   = np.concatenate([self.weights,   np.array([weight], dtype=np.float64)])
-        self.pinned    = np.concatenate([self.pinned,    np.array([False],  dtype=bool)])
+        self.weights = np.concatenate(
+            [self.weights, np.array([weight], dtype=np.float64)]
+        )
+        self.pinned = np.concatenate([self.pinned, np.array([False], dtype=bool)])
         self.labels.append(label if label is not None else _default_label(node_id))
 
         self._id_to_index[node_id] = idx
@@ -83,20 +88,31 @@ class DOM:
         idx = self._id_to_index.pop(node_id)
         last = self.n - 1
 
+        # Drop edges that touched the removed node, then remap any reference
+        # to the swapped-in `last` index so it points to `idx`.
+        if self.edges.shape[0] > 0:
+            keep = (self.edges[:, 0] != idx) & (self.edges[:, 1] != idx)
+            edges = self.edges[keep]
+            if idx != last and edges.shape[0] > 0:
+                edges = np.where(edges == last, idx, edges)
+                # Re-sort each row to maintain i < j after remap.
+                edges = np.sort(edges, axis=1)
+            self.edges = edges
+
         if idx != last:
             # Swap-with-last across all parallel arrays so the truncate at
             # the end leaves a contiguous, valid table.
             self.positions[idx] = self.positions[last]
-            self.weights[idx]   = self.weights[last]
-            self.pinned[idx]    = self.pinned[last]
-            self.labels[idx]    = self.labels[last]
+            self.weights[idx] = self.weights[last]
+            self.pinned[idx] = self.pinned[last]
+            self.labels[idx] = self.labels[last]
             moved_id = self._index_to_id[last]
             self._index_to_id[idx] = moved_id
             self._id_to_index[moved_id] = idx
 
         self.positions = self.positions[:last].copy()
-        self.weights   = self.weights[:last].copy()
-        self.pinned    = self.pinned[:last].copy()
+        self.weights = self.weights[:last].copy()
+        self.pinned = self.pinned[:last].copy()
         self.labels.pop()
         self._index_to_id.pop()
 
@@ -108,16 +124,29 @@ class DOM:
 
     def clear(self) -> None:
         """Reset all node data and the ID counter to initial state."""
-        self.positions = np.zeros((0, 3), dtype=np.float64)
-        self.weights   = np.zeros((0,),   dtype=np.float64)
-        self.pinned    = np.zeros((0,),   dtype=bool)
-        self.labels    = []
+        self.positions = np.zeros((0, self.dims), dtype=np.float64)
+        self.weights = np.zeros((0,), dtype=np.float64)
+        self.pinned = np.zeros((0,), dtype=bool)
+        self.labels = []
+        self.edges = np.zeros((0, 2), dtype=np.int64)
         self._id_to_index = {}
         self._index_to_id = []
         self._next_id = 0
         self._revision += 1
         self._position_revision += 1
         self._pairs_cache = None
+
+    def add_edge(self, i: int, j: int) -> None:
+        if i == j:
+            return
+        a, b = (i, j) if i < j else (j, i)
+        if self.edges.shape[0] > 0:
+            existing = (self.edges[:, 0] == a) & (self.edges[:, 1] == b)
+            if existing.any():
+                return
+        new_row = np.array([[a, b]], dtype=np.int64)
+        self.edges = np.concatenate([self.edges, new_row], axis=0)
+        self._bump(positions_changed=False)
 
     def _set_positions(self, positions: np.ndarray) -> None:
         # Bulk write from the integrator. Bumps position revision so the

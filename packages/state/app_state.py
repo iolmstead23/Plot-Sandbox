@@ -9,11 +9,9 @@ No imports from sibling packages.
 
 
 class AppState:
-    """Mutable runtime state — the title and camera focus for the active plot."""
+    """Mutable runtime state — the camera focus for the active plot."""
 
     def __init__(self) -> None:
-        self.title: str = "3D Plot of Elements"
-        # Fixed look-at target. The plot centers this point on screen.
         self.camera_focus: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
 
