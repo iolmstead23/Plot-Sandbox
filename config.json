@@ -40,9 +40,9 @@
     "label_offset": 0.4
   },
   "plot": {
-    "title": "Physics simulation",
+    "title": "Knowledge Graph Simulation",
     "figsize": [
-      8,
+      10,
       6
     ],
     "size_scale": 1.0,

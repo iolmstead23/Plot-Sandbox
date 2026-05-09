@@ -7,7 +7,7 @@ No sibling packages are imported here.
 
 import json
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import List
 
 
@@ -320,12 +320,6 @@ def load_config(path: str = "config.json") -> Config:
 
     _validate(data)
     return _dict_to_config(data)
-
-
-def save_config(cfg: Config, path: str = "config.json") -> None:
-    """Serialize *cfg* back to *path* (pretty-printed JSON)."""
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(_config_to_dict(cfg), fh, indent=2)
 
 
 # Module-level singleton — loaded once at import time.

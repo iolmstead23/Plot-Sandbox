@@ -216,6 +216,3 @@ def update_scatter_3d(
         if labels is not None and i < len(labels):
             t.set_text(labels[i])
 
-
-def show(figure: Figure) -> None:
-    figure.show()

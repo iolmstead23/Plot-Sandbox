@@ -1,7 +1,7 @@
 """Tkinter window with a sidebar of injectable buttons and an embedded matplotlib Figure.
 
 Supports two modes of update:
-  - `set_figure(fig)`: full canvas teardown + rebuild (legacy / Sample path).
+  - `set_figure(fig)`: full canvas teardown + rebuild.
   - `start_tick(cb)` + in-place artist updates: a recurring `after()` callback
     drives the physics tick. The canvas is never destroyed mid-tick.
 """

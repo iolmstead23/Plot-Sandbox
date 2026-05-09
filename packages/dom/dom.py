@@ -1,7 +1,6 @@
 """Memoized DOM — single source of truth for node data.
 
-NumPy arrays are the source of truth; Node (see node.py) is a thin view that
-reads/writes rows on demand. The integrator writes via the underscore-prefixed
+NumPy arrays are the source of truth. The integrator writes via the underscore-prefixed
 bulk API (`_set_positions`); all other mutation flows through the public
 methods. Each mutator bumps `_revision`, which is used to invalidate the
 `pairs_within_radius` cache and (optionally) notify the `on_change` seam.
@@ -107,16 +106,6 @@ class DOM:
         self.weights[self._id_to_index[node_id]] = weight
         self._bump(positions_changed=False)
 
-    def pin_position(self, node_id: int, position: np.ndarray) -> None:
-        idx = self._id_to_index[node_id]
-        self.positions[idx] = np.asarray(position, dtype=np.float64).reshape(3,)
-        self.pinned[idx] = True
-        self._bump(positions_changed=True)
-
-    def unpin(self, node_id: int) -> None:
-        self.pinned[self._id_to_index[node_id]] = False
-        self._bump(positions_changed=False)
-
     def clear(self) -> None:
         """Reset all node data and the ID counter to initial state."""
         self.positions = np.zeros((0, 3), dtype=np.float64)
@@ -138,14 +127,6 @@ class DOM:
         self._bump(positions_changed=True, notify=False)
 
     # --- Derived queries -------------------------------------------------
-    def center_of_mass(self) -> np.ndarray:
-        if self.n == 0:
-            return np.zeros(3, dtype=np.float64)
-        total = self.weights.sum()
-        if total == 0.0:
-            return self.positions.mean(axis=0)
-        return (self.positions * self.weights[:, None]).sum(axis=0) / total
-
     def pairs_within_radius(self, radius: float) -> np.ndarray:
         if self._pairs_cache is not None:
             cached_rev, cached_r, cached_pairs = self._pairs_cache
@@ -165,10 +146,6 @@ class DOM:
         return pairs
 
     # --- Lookup ----------------------------------------------------------
-    def get_node(self, node_id: int):
-        from .node import Node
-        return Node(self, node_id)
-
     def ids(self) -> list[int]:
         return list(self._id_to_index.keys())
 
