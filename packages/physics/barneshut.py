@@ -15,6 +15,11 @@ With Numba `prange`, force computation parallelises across all CPU cores.
 
 from __future__ import annotations
 
+# REFACTOR EXEMPTION: This file intentionally exceeds 200 lines.
+# All @nb.njit functions must reside in one compilation unit for Numba
+# JIT cache coherence. The prange-parallel force kernel references sibling
+# JIT functions; splitting them would break cache=True. Do NOT split this file.
+
 import numpy as np
 
 BH_THRESHOLD: int = 5000   # activate when N >= this on CPU path

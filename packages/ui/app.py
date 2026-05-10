@@ -26,14 +26,10 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QCloseEvent, QFont
 from PyQt6.QtWidgets import (
     QApplication,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QPushButton,
     QSizePolicy,
-    QSlider,
-    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
@@ -41,44 +37,10 @@ from PyQt6.QtWidgets import (
 if TYPE_CHECKING:
     from packages.plot.vispy_3d import SceneObjects
 
-# ── Visual constants (no cross-package import; values mirror packages/theme) ──
-_BG           = "#1e1e2e"
-_TEXT         = "#cdd6f4"
-_BORDER       = "#45475a"
-_BUTTON_BG    = "#313244"
-_BUTTON_HOVER = "#45475a"
-_BANNER_FONT       = "Courier"
-_BANNER_FONT_SIZE  = 9
-_BANNER_HEIGHT     = 22
-_BANNER_PADDING    = "2px 6px"
-_SIDEBAR_WIDTH = 160
-_BUTTON_WIDTH  = 130
-
-ButtonHandler = Callable[["App"], None]
-ButtonSpec = tuple[str, ButtonHandler]
-SliderCallback = Callable[["App", float], None]
-SliderSpec = tuple[str, float, float, float, float, SliderCallback]
-
-
-# ---------------------------------------------------------------------------
-# Canvas compatibility shim
-# ---------------------------------------------------------------------------
-
-
-class _CanvasWrapper:
-    """Thin wrapper so render handlers can call app.canvas.update()."""
-
-    def __init__(self, vispy_canvas) -> None:
-        self._c = vispy_canvas
-
-    def update(self) -> None:
-        self._c.update()
-
-
-
-# ---------------------------------------------------------------------------
-# Main window
-# ---------------------------------------------------------------------------
+from .theme import _BG, _BANNER_FONT, _BANNER_FONT_SIZE, _BANNER_HEIGHT, _BANNER_PADDING, _BORDER, _TEXT
+from ._canvas import _CanvasWrapper
+from ._sidebar import build_sidebar
+from ._types import ButtonSpec, SliderSpec
 
 
 class App(QMainWindow):
@@ -97,7 +59,6 @@ class App(QMainWindow):
         super().__init__()
         self.setWindowTitle(window_title)
 
-        # Parse WxH geometry string
         try:
             w, h = (int(v) for v in geometry.split("x"))
         except ValueError:
@@ -111,63 +72,20 @@ class App(QMainWindow):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._on_tick)
 
-        # ── root layout ────────────────────────────────────────────────────
         root = QWidget()
         self.setCentralWidget(root)
         root_layout = QVBoxLayout(root)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        # ── main content row (sidebar + canvas) ────────────────────────────
         content = QWidget()
         content_layout = QHBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        # Sidebar — target only the container widget (not child buttons/sliders)
-        # so native QPushButton rendering is preserved.
-        sidebar = self._build_sidebar(
-            buttons or [], sliders or [], button_padx, button_pady
-        )
-        sidebar.setObjectName("sidebar_container")
-        sidebar.setStyleSheet(f"""
-            QWidget#sidebar_container {{ background-color: {_BG}; }}
-            QWidget#sidebar_container QPushButton {{
-                background-color: {_BUTTON_BG};
-                color: {_TEXT};
-                border: 1px solid {_BORDER};
-                padding: 4px 8px;
-                border-radius: 3px;
-            }}
-            QWidget#sidebar_container QPushButton:hover {{
-                background-color: {_BUTTON_HOVER};
-            }}
-            QWidget#sidebar_container QLabel {{
-                background-color: transparent;
-                color: {_TEXT};
-            }}
-            QWidget#sidebar_container QFrame {{
-                background-color: {_BUTTON_BG};
-                border: 1px solid {_BORDER};
-                border-radius: 3px;
-            }}
-            QWidget#sidebar_container QSlider::groove:horizontal {{
-                background: {_BORDER};
-                height: 4px;
-                border-radius: 2px;
-            }}
-            QWidget#sidebar_container QSlider::handle:horizontal {{
-                background: {_TEXT};
-                width: 12px;
-                height: 12px;
-                border-radius: 6px;
-                margin: -4px 0;
-            }}
-        """)
+        sidebar = build_sidebar(self, buttons or [], sliders or [], button_padx, button_pady)
         content_layout.addWidget(sidebar)
 
-        # VisPy OpenGL canvas — zero margins, same background so clipped
-        # nodes at the edge blend rather than hard-cut against a white frame.
         canvas_widget = scene_objects.canvas.native
         canvas_widget.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -176,7 +94,6 @@ class App(QMainWindow):
 
         root_layout.addWidget(content)
 
-        # ── banner — explicit colours so it reads on any Windows theme ───────
         self._banner = QLabel(self._format_banner(sample_size))
         self._banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._banner.setFont(QFont(_BANNER_FONT, _BANNER_FONT_SIZE))
@@ -190,78 +107,13 @@ class App(QMainWindow):
         )
         root_layout.addWidget(self._banner)
 
-    # ── sidebar construction ───────────────────────────────────────────────
-
-    def _build_sidebar(
-        self,
-        buttons: list[ButtonSpec],
-        sliders: list[SliderSpec],
-        padx: int,
-        pady: int,
-    ) -> QWidget:
-        sidebar = QWidget()
-        sidebar.setFixedWidth(_SIDEBAR_WIDTH)
-        layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(padx, pady, padx, pady)
-        layout.setSpacing(pady)
-
-        for label, handler in buttons:
-            btn = QPushButton(label)
-            btn.setFixedWidth(_BUTTON_WIDTH)
-            btn.clicked.connect(lambda _checked, h=handler: h(self))
-            layout.addWidget(btn)
-
-        layout.addSpacerItem(
-            QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        )
-
-        if sliders:
-            frame = QFrame()
-            frame.setFrameShape(QFrame.Shape.StyledPanel)
-            frame_layout = QVBoxLayout(frame)
-            frame_layout.setContentsMargins(4, 4, 4, 4)
-            frame_layout.setSpacing(2)
-
-            for s_label, s_init, s_lo, s_hi, s_step, s_cb in sliders:
-                lbl = QLabel(s_label)
-                frame_layout.addWidget(lbl)
-
-                val_label = QLabel(f"{s_init:.2f}")
-                val_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                frame_layout.addWidget(val_label)
-
-                steps = max(1, round((s_hi - s_lo) / s_step))
-                slider = QSlider(Qt.Orientation.Horizontal)
-                slider.setRange(0, steps)
-                slider.setValue(round((s_init - s_lo) / s_step))
-
-                def _on_change(
-                    v: int, lo=s_lo, st=s_step, vl=val_label, cb=s_cb
-                ) -> None:
-                    fval = lo + v * st
-                    vl.setText(f"{fval:.2f}")
-                    cb(self, fval)
-
-                slider.valueChanged.connect(_on_change)
-                frame_layout.addWidget(slider)
-
-            layout.addWidget(frame)
-
-        return sidebar
-
-    # ── scene management ───────────────────────────────────────────────────
-
     @property
     def artists(self) -> Optional[SceneObjects]:
         return self._scene
 
-    # ── canvas access ──────────────────────────────────────────────────────
-
     @property
     def canvas(self) -> _CanvasWrapper:
         return self._canvas_wrapper
-
-    # ── tick / timer ───────────────────────────────────────────────────────
 
     @property
     def is_ticking(self) -> bool:
@@ -284,8 +136,6 @@ class App(QMainWindow):
     def _on_tick(self) -> None:
         if self._tick_callback is not None:
             self._tick_callback(self)
-
-    # ── banner ─────────────────────────────────────────────────────────────
 
     @staticmethod
     def _format_banner(
@@ -317,17 +167,10 @@ class App(QMainWindow):
     ) -> None:
         self._banner.setText(self._format_banner(n, temperature, fps, tick_ms, accel))
 
-    # ── window events ──────────────────────────────────────────────────────
-
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         self.stop_tick()
         if a0 is not None:
             a0.accept()
-
-
-# ---------------------------------------------------------------------------
-# Launch helper
-# ---------------------------------------------------------------------------
 
 
 def launch(
