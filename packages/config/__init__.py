@@ -29,6 +29,7 @@ class PhysicsConfig:
     min_temperature: float
     k_edge: float
     edge_rest_length: float
+    repulsion_cutoff: float = 6.0
 
 
 @dataclass
@@ -41,6 +42,7 @@ class SimulationConfig:
     outer_radius_fraction: float
     dims: int
     max_degree: int = 6
+    use_gpu: bool = True
 
 
 @dataclass
@@ -49,6 +51,8 @@ class TickConfig:
     dt: float
     equilibrium_threshold: float
     interval_ms: int
+    render_every: int = 1
+    physics_substeps: int = 8
 
 
 @dataclass
@@ -76,6 +80,7 @@ class PlotConfig:
     label_color: str
     label_stroke_width: float
     edge_linewidth: float
+    label_max_nodes: int = 60
 
 
 @dataclass
@@ -121,6 +126,7 @@ _DEFAULT_CONFIG: dict = {
         "min_temperature": 0.05,
         "k_edge": 0.08,
         "edge_rest_length": 5.0,
+        "repulsion_cutoff": 6.0,
     },
     "simulation": {
         "node_count": 30,
@@ -131,12 +137,15 @@ _DEFAULT_CONFIG: dict = {
         "outer_radius_fraction": 0.9,
         "dims": 3,
         "max_degree": 6,
+        "use_gpu": True,
     },
     "tick": {
         "attraction_radius": 2.5,
         "dt": 0.05,
         "equilibrium_threshold": 0.001,
         "interval_ms": 33,
+        "render_every": 1,
+        "physics_substeps": 8,
     },
     "view": {
         "elev": 25.0,
@@ -160,6 +169,7 @@ _DEFAULT_CONFIG: dict = {
         "label_color": "#444444",
         "label_stroke_width": 2.5,
         "edge_linewidth": 0.5,
+        "label_max_nodes": 60,
     },
     "dom": {
         "weight_to_size": 40.0,
@@ -192,6 +202,7 @@ _SCHEMA: dict = {
         "min_temperature": (int, float),
         "k_edge": (int, float),
         "edge_rest_length": (int, float),
+        "repulsion_cutoff": (int, float),
     },
     "simulation": {
         "node_count": int,
@@ -202,12 +213,15 @@ _SCHEMA: dict = {
         "outer_radius_fraction": (int, float),
         "dims": int,
         "max_degree": int,
+        "use_gpu": bool,
     },
     "tick": {
         "attraction_radius": (int, float),
         "dt": (int, float),
         "equilibrium_threshold": (int, float),
         "interval_ms": int,
+        "render_every": int,
+        "physics_substeps": int,
     },
     "view": {
         "elev": (int, float),
@@ -231,6 +245,7 @@ _SCHEMA: dict = {
         "label_color": str,
         "label_stroke_width": (int, float),
         "edge_linewidth": (int, float),
+        "label_max_nodes": int,
     },
     "dom": {
         "weight_to_size": (int, float),

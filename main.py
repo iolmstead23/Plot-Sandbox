@@ -6,7 +6,8 @@ import numpy as np
 
 from packages.config import config
 from packages.dom import dom
-from packages.plot import build_scatter_3d_figure, project_to_3d
+from packages.physics import setup_backend
+from packages.plot import build_vispy_scene, project_to_3d
 from packages.state import state
 from packages.ui import launch
 
@@ -28,22 +29,25 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    setup_backend(config.simulation.use_gpu)
+
     dom.weight_to_size = config.dom.weight_to_size
     dom.dims = config.simulation.dims
 
     rng = np.random.default_rng(args.seed)
     seed_physics_dom(rng)
 
-    figure, artists = build_scatter_3d_figure(
+    scene_objects = build_vispy_scene(
         project_to_3d(dom.positions),
         dom.sizes,
         list(dom.labels),
         dom.edges,
-        view_format=vars(config.view),
-        plot_style=vars(config.plot),
         title=config.plot.title,
         focus=state.camera_focus,
-        depthshade=False,
+        elev=config.view.elev,
+        azim=config.view.azim,
+        axis_length=config.view.view_range * 0.4,
+        size_scale=config.plot.size_scale,
     )
 
     sliders = [
@@ -74,11 +78,11 @@ def main() -> None:
     ]
 
     launch(
-        figure,
+        scene_objects,
         buttons=BUTTON_HANDLERS,
         sample_size=dom.n,
         sliders=sliders,
-        artists=artists,
+        artists=scene_objects,
         on_ready=lambda app: app.start_tick(
             physics_tick, interval_ms=config.tick.interval_ms
         ),

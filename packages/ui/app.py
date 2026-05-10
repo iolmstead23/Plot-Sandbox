@@ -1,133 +1,319 @@
-"""Tkinter window with a sidebar of injectable buttons and an embedded matplotlib Figure.
+"""Qt + VisPy application window.
 
-Supports two modes of update:
-  - `set_figure(fig)`: full canvas teardown + rebuild.
-  - `start_tick(cb)` + in-place artist updates: a recurring `after()` callback
-    drives the physics tick. The canvas is never destroyed mid-tick.
+Preserves the same public API as the old Tkinter version so all handlers
+work without changes:
+
+  App(scene_objects, buttons, *, sliders, window_title, geometry, ...)
+  app.artists          — SceneObjects bundle
+  app.canvas           — CanvasWrapper with .update() / .draw_idle()
+  app.is_ticking       — bool
+  app.start_tick(cb, interval_ms)
+  app.stop_tick()
+  app.update_banner(n, temperature, fps, tick_ms, accel)
+
+Threading model
+---------------
+  Main thread (Qt event loop)  — renders at 60 FPS via QTimer
+  Background thread (thread.py) — GPU physics runs continuously
 """
 
-import tkinter as tk
+from __future__ import annotations
+
+import sys
 from typing import Callable, Optional
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QCloseEvent, QFont
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QPushButton,
+    QSizePolicy,
+    QSlider,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from packages.plot.vispy_3d import SceneObjects
+import packages.theme as theme
 
 ButtonHandler = Callable[["App"], None]
 ButtonSpec = tuple[str, ButtonHandler]
-
 SliderCallback = Callable[["App", float], None]
-# (label, initial, min, max, step, on_release)
 SliderSpec = tuple[str, float, float, float, float, SliderCallback]
 
 
-class App(tk.Tk):
+# ---------------------------------------------------------------------------
+# Canvas compatibility shim
+# ---------------------------------------------------------------------------
+
+
+class _CanvasWrapper:
+    """Thin wrapper that exposes both .update() and .draw_idle() so the
+    render handler works whether it calls one or the other."""
+
+    def __init__(self, vispy_canvas) -> None:
+        self._c = vispy_canvas
+
+    def update(self) -> None:
+        self._c.update()
+
+    def draw_idle(self) -> None:
+        self._c.update()
+
+    @property
+    def native(self):
+        return self._c.native
+
+
+# ---------------------------------------------------------------------------
+# Main window
+# ---------------------------------------------------------------------------
+
+
+class App(QMainWindow):
     def __init__(
         self,
-        figure: Figure,
+        scene_objects: SceneObjects,
         buttons: Optional[list[ButtonSpec]] = None,
         *,
-        sample_size: int,
+        sample_size: int = 0,
         sliders: Optional[list[SliderSpec]] = None,
         window_title: str = "3D Plot",
-        geometry: str = "900x600",
+        geometry: str = "900x640",
         button_width: int = 14,
         button_padx: int = 8,
         button_pady: int = 6,
-    ):
+    ) -> None:
         super().__init__()
-        self.title(window_title)
-        self.geometry(geometry)
+        self.setWindowTitle(window_title)
 
-        self._overlay = tk.Label(self, text=self._build_banner(sample_size))
-        self._overlay.pack(side="bottom", fill="x")
+        # Parse WxH geometry string
+        try:
+            w, h = (int(v) for v in geometry.split("x"))
+        except ValueError:
+            w, h = 900, 640
+        self.resize(w, h)
 
-        sidebar = tk.Frame(self)
-        sidebar.pack(side="left", fill="y")
+        self._scene: SceneObjects = scene_objects
+        self._canvas_wrapper = _CanvasWrapper(scene_objects.canvas)
 
-        # Pack the slider section first with side="bottom" so buttons stack
-        # from the top down and the sliders stay anchored at the sidebar floor.
-        if sliders:
-            slider_frame = tk.Frame(sidebar, bd=1, relief="groove")
-            slider_frame.pack(side="bottom", fill="x", padx=4, pady=6)
-            for label, init, lo, hi, step, on_release in sliders:
-                tk.Label(slider_frame, text=label).pack(anchor="w", padx=2)
-                scale = tk.Scale(
-                    slider_frame,
-                    from_=lo,
-                    to=hi,
-                    resolution=step,
-                    orient="horizontal",
-                )
-                scale.set(init)
-                scale.bind(
-                    "<ButtonRelease-1>",
-                    lambda _e, s=scale, cb=on_release: cb(self, float(s.get())),
-                )
-                scale.pack(fill="x", padx=2, pady=(0, 4))
-
-        for label, handler in buttons or []:
-            tk.Button(
-                sidebar,
-                text=label,
-                width=button_width,
-                command=lambda h=handler: h(self),
-            ).pack(padx=button_padx, pady=button_pady)
-
-        self._canvas_area = tk.Frame(self)
-        self._canvas_area.pack(side="right", fill="both", expand=True)
-
-        self._canvas: FigureCanvasTkAgg = self._mount_canvas(figure)
-
-        self._artists = None
         self._tick_callback: Optional[Callable[["App"], None]] = None
-        self._tick_interval_ms: int = 33
-        self._tick_id: Optional[str] = None
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._on_tick)
 
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        # ── root layout ────────────────────────────────────────────────────
+        root = QWidget()
+        self.setCentralWidget(root)
+        root_layout = QVBoxLayout(root)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
-    def _mount_canvas(self, figure: Figure) -> FigureCanvasTkAgg:
-        canvas = FigureCanvasTkAgg(figure, master=self._canvas_area)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True)
-        return canvas
+        # ── main content row (sidebar + canvas) ────────────────────────────
+        content = QWidget()
+        content_layout = QHBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
 
-    def set_figure(self, figure: Figure) -> None:
-        """Replace the embedded figure (full rebuild). Stops any active tick."""
-        self.stop_tick()
-        self._canvas.get_tk_widget().destroy()
-        self._canvas = self._mount_canvas(figure)
-        self._artists = None
+        # Sidebar — target only the container widget (not child buttons/sliders)
+        # so native QPushButton rendering is preserved.
+        sidebar = self._build_sidebar(
+            buttons or [], sliders or [], button_padx, button_pady
+        )
+        sidebar.setObjectName("sidebar_container")
+        sidebar.setStyleSheet(f"""
+            QWidget#sidebar_container {{ background-color: {theme.BG}; }}
+            QWidget#sidebar_container QPushButton {{
+                background-color: {theme.BUTTON_BG};
+                color: {theme.TEXT};
+                border: 1px solid {theme.BORDER};
+                padding: 4px 8px;
+                border-radius: 3px;
+            }}
+            QWidget#sidebar_container QPushButton:hover {{
+                background-color: {theme.BUTTON_HOVER};
+            }}
+            QWidget#sidebar_container QLabel {{
+                background-color: transparent;
+                color: {theme.TEXT};
+            }}
+            QWidget#sidebar_container QFrame {{
+                background-color: {theme.BUTTON_BG};
+                border: 1px solid {theme.BORDER};
+                border-radius: 3px;
+            }}
+            QWidget#sidebar_container QSlider::groove:horizontal {{
+                background: {theme.BORDER};
+                height: 4px;
+                border-radius: 2px;
+            }}
+            QWidget#sidebar_container QSlider::handle:horizontal {{
+                background: {theme.TEXT};
+                width: 12px;
+                height: 12px;
+                border-radius: 6px;
+                margin: -4px 0;
+            }}
+        """)
+        content_layout.addWidget(sidebar)
 
-    def set_artists(self, artists) -> None:
-        """Hand the renderer's Artists bundle to the App so the tick can update in place."""
-        self._artists = artists
+        # VisPy OpenGL canvas — zero margins, same background so clipped
+        # nodes at the edge blend rather than hard-cut against a white frame.
+        canvas_widget = scene_objects.canvas.native
+        canvas_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        content_layout.addWidget(canvas_widget)
+
+        root_layout.addWidget(content)
+
+        # ── banner — explicit colours so it reads on any Windows theme ───────
+        self._banner = QLabel(self._format_banner(sample_size))
+        self._banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._banner.setFont(QFont(theme.BANNER_FONT, theme.BANNER_FONT_SIZE))
+        self._banner.setFixedHeight(theme.BANNER_HEIGHT)
+        self._banner.setStyleSheet(
+            f"background-color:{theme.BG};"
+            f"color:{theme.TEXT};"
+            f"padding:{theme.BANNER_PADDING};"
+            f"border-top:1px solid {theme.BORDER};"
+            "font-weight:bold;"
+        )
+        root_layout.addWidget(self._banner)
+
+    # ── sidebar construction ───────────────────────────────────────────────
+
+    def _build_sidebar(
+        self,
+        buttons: list[ButtonSpec],
+        sliders: list[SliderSpec],
+        padx: int,
+        pady: int,
+    ) -> QWidget:
+        sidebar = QWidget()
+        sidebar.setFixedWidth(theme.SIDEBAR_WIDTH)
+        layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(padx, pady, padx, pady)
+        layout.setSpacing(pady)
+
+        for label, handler in buttons:
+            btn = QPushButton(label)
+            btn.setFixedWidth(theme.BUTTON_WIDTH)
+            btn.clicked.connect(lambda _checked, h=handler: h(self))
+            layout.addWidget(btn)
+
+        layout.addSpacerItem(
+            QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        )
+
+        if sliders:
+            frame = QFrame()
+            frame.setFrameShape(QFrame.Shape.StyledPanel)
+            frame_layout = QVBoxLayout(frame)
+            frame_layout.setContentsMargins(4, 4, 4, 4)
+            frame_layout.setSpacing(2)
+
+            for s_label, s_init, s_lo, s_hi, s_step, s_cb in sliders:
+                lbl = QLabel(s_label)
+                frame_layout.addWidget(lbl)
+
+                val_label = QLabel(f"{s_init:.2f}")
+                val_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                frame_layout.addWidget(val_label)
+
+                steps = max(1, round((s_hi - s_lo) / s_step))
+                slider = QSlider(Qt.Orientation.Horizontal)
+                slider.setRange(0, steps)
+                slider.setValue(round((s_init - s_lo) / s_step))
+
+                def _on_change(
+                    v: int, lo=s_lo, st=s_step, vl=val_label, cb=s_cb
+                ) -> None:
+                    fval = lo + v * st
+                    vl.setText(f"{fval:.2f}")
+                    cb(self, fval)
+
+                slider.valueChanged.connect(_on_change)
+                frame_layout.addWidget(slider)
+
+            layout.addWidget(frame)
+
+        return sidebar
+
+    # ── scene management ───────────────────────────────────────────────────
 
     @property
-    def artists(self):
-        return self._artists
+    def artists(self) -> Optional[SceneObjects]:
+        return self._scene
+
+    @property
+    def scene(self) -> Optional[SceneObjects]:
+        return self._scene
+
+    def set_artists(self, so: SceneObjects) -> None:
+        self._scene = so
+        self._canvas_wrapper = _CanvasWrapper(so.canvas)
+
+    def set_scene(self, so: SceneObjects) -> None:
+        self.set_artists(so)
+
+    # set_figure kept for call-site compatibility (no-op with VisPy)
+    def set_figure(self, _fig) -> None:
+        pass
+
+    # ── canvas access ──────────────────────────────────────────────────────
+
+    @property
+    def canvas(self) -> _CanvasWrapper:
+        return self._canvas_wrapper
+
+    # ── tick / timer ───────────────────────────────────────────────────────
 
     @property
     def is_ticking(self) -> bool:
-        return self._tick_id is not None
+        return self._timer.isActive()
 
-    @property
-    def canvas(self) -> FigureCanvasTkAgg:
-        return self._canvas
-
-    def _build_banner(
+    def start_tick(
         self,
+        callback: Callable[["App"], None],
+        *,
+        interval_ms: int = 16,
+    ) -> None:
+        self.stop_tick()
+        self._tick_callback = callback
+        self._timer.start(interval_ms)
+
+    def stop_tick(self) -> None:
+        self._timer.stop()
+        self._tick_callback = None
+
+    def _on_tick(self) -> None:
+        if self._tick_callback is not None:
+            self._tick_callback(self)
+
+    # ── banner ─────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _format_banner(
         n: int,
         temperature: Optional[float] = None,
         fps: Optional[float] = None,
         tick_ms: Optional[float] = None,
+        accel: str = "",
     ) -> str:
-        parts: list[str] = [f"n={n}"]
+        parts = [f"n={n}"]
         if temperature is not None:
             parts.append(f"T={temperature:.3f}")
         if fps is not None:
             parts.append(f"FPS={fps:.1f}")
         if tick_ms is not None:
             parts.append(f"tick={tick_ms:.1f}ms")
+        if accel:
+            parts.append(accel)
         parts.append("X (Red)  Y (Green)  Z (Blue)")
         return "  |  ".join(parts)
 
@@ -137,62 +323,41 @@ class App(tk.Tk):
         temperature: Optional[float] = None,
         fps: Optional[float] = None,
         tick_ms: Optional[float] = None,
+        accel: str = "",
     ) -> None:
-        self._overlay.config(text=self._build_banner(n, temperature, fps, tick_ms))
+        self._banner.setText(self._format_banner(n, temperature, fps, tick_ms, accel))
 
-    def start_tick(
-        self,
-        callback: Callable[["App"], None],
-        *,
-        interval_ms: int = 33,
-    ) -> None:
+    # ── window events ──────────────────────────────────────────────────────
+
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
         self.stop_tick()
-        self._tick_callback = callback
-        self._tick_interval_ms = interval_ms
-        self._schedule_next_tick()
+        if a0 is not None:
+            a0.accept()
 
-    def stop_tick(self) -> None:
-        if self._tick_id is not None:
-            try:
-                self.after_cancel(self._tick_id)
-            except tk.TclError:
-                pass
-            self._tick_id = None
-        self._tick_callback = None
 
-    def _schedule_next_tick(self) -> None:
-        if self._tick_callback is None:
-            return
-        self._tick_id = self.after(self._tick_interval_ms, self._on_tick)
-
-    def _on_tick(self) -> None:
-        cb = self._tick_callback
-        if cb is None:
-            return
-        cb(self)
-        self._schedule_next_tick()
-
-    def _on_close(self) -> None:
-        self.stop_tick()
-        self.destroy()
+# ---------------------------------------------------------------------------
+# Launch helper
+# ---------------------------------------------------------------------------
 
 
 def launch(
-    figure: Figure,
+    scene_objects: SceneObjects,
     buttons: Optional[list[ButtonSpec]] = None,
     *,
-    sample_size: int,
+    sample_size: int = 0,
     sliders: Optional[list[SliderSpec]] = None,
-    artists=None,
-    on_ready: Optional[Callable[["App"], None]] = None,
+    artists: Optional[SceneObjects] = None,
+    on_ready: Optional[Callable[[App], None]] = None,
     window_title: str = "3D Plot",
-    geometry: str = "900x600",
+    geometry: str = "900x640",
     button_width: int = 14,
     button_padx: int = 8,
     button_pady: int = 6,
 ) -> None:
+    qt_app = QApplication.instance() or QApplication(sys.argv)
+
     app = App(
-        figure,
+        scene_objects,
         buttons=buttons,
         sample_size=sample_size,
         sliders=sliders,
@@ -206,4 +371,5 @@ def launch(
         app.set_artists(artists)
     if on_ready is not None:
         on_ready(app)
-    app.mainloop()
+    app.show()
+    qt_app.exec()

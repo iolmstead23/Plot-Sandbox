@@ -7,6 +7,9 @@ from ..state import app as app_state, temperature
 
 def _on_dom_change(_dom) -> None:
     temperature.reset()
+    # Lazy import avoids a circular reference at load time.
+    from . import thread as _thread
+    _thread.reheat()
 
 
 def _on_mutation_enqueued() -> None:

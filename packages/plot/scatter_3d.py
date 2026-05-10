@@ -250,15 +250,19 @@ def update_scatter_3d(
     *,
     view_format: dict,
     plot_style: dict,
+    positions_only: bool = False,
 ) -> None:
-    """Mutate existing artists in place. Caller schedules canvas.draw_idle()."""
+    """Mutate existing artists in place. Caller schedules canvas.draw_idle().
+
+    positions_only=True is the fast path used every physics tick: it skips all
+    style/text property writes (which don't change during simulation) and hides
+    labels above label_max_nodes. Use positions_only=False (default) after any
+    structural DOM change (reseed, add/remove node) to sync text and style.
+    """
     n = positions.shape[0]
     size_scale = plot_style["size_scale"]
     offset = view_format["label_offset"]
-    fontsize = plot_style["label_fontsize"]
-    label_alpha = plot_style["label_alpha"]
-    label_color = plot_style["label_color"]
-    label_path_effects = _label_path_effects(plot_style["label_stroke_width"])
+    label_max = plot_style.get("label_max_nodes", 60)
 
     artists.scatter._offsets3d = (
         positions[:, 0],
@@ -267,13 +271,37 @@ def update_scatter_3d(
     )
     artists.scatter.set_sizes(sizes * size_scale)
 
-    if edges.shape[0] > 0:
-        segs = positions[edges]
-    else:
-        segs = np.zeros((0, 2, 3))
-    artists.edge_lines.set_segments(list(segs))  # type: ignore[arg-type]
+    # Pass the numpy array directly — Line3DCollection iterates over it the
+    # same way as a list, but avoids an O(E) Python list allocation each tick.
+    segs = positions[edges] if edges.shape[0] > 0 else np.zeros((0, 2, 3))
+    artists.edge_lines.set_segments(segs)  # type: ignore[arg-type]
 
-    if labels is not None:
+    show_labels = n <= label_max
+
+    if positions_only:
+        # Fast tick path: only move existing label objects, no style/text I/O.
+        if show_labels:
+            for i, t in enumerate(artists.label_texts):
+                if i >= n:
+                    t.set_visible(False)
+                    continue
+                x, y, z = positions[i]
+                t.set_visible(True)
+                t.set_position((float(x), float(y)))
+                t.set_3d_properties(float(z) + offset, "z")
+        else:
+            for t in artists.label_texts:
+                t.set_visible(False)
+        return
+
+    # Full update path — syncs text, style, and path effects after structural
+    # changes. Only reached on reseed / add / remove, not during normal ticks.
+    fontsize = plot_style["label_fontsize"]
+    label_alpha = plot_style["label_alpha"]
+    label_color = plot_style["label_color"]
+    label_path_effects = _label_path_effects(plot_style["label_stroke_width"])
+
+    if labels is not None and show_labels:
         while len(artists.label_texts) < n:
             i = len(artists.label_texts)
             x, y, z = positions[i]
@@ -294,7 +322,7 @@ def update_scatter_3d(
             artists.label_texts.append(t)
 
     for i, t in enumerate(artists.label_texts):
-        if i >= n:
+        if i >= n or not show_labels:
             t.set_visible(False)
             continue
         x, y, z = positions[i]
