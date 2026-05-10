@@ -5,7 +5,7 @@ work without changes:
 
   App(scene_objects, buttons, *, sliders, window_title, geometry, ...)
   app.artists          — SceneObjects bundle
-  app.canvas           — CanvasWrapper with .update() / .draw_idle()
+  app.canvas           — CanvasWrapper with .update()
   app.is_ticking       — bool
   app.start_tick(cb, interval_ms)
   app.stop_tick()
@@ -66,8 +66,7 @@ SliderSpec = tuple[str, float, float, float, float, SliderCallback]
 
 
 class _CanvasWrapper:
-    """Thin wrapper that exposes both .update() and .draw_idle() so the
-    render handler works whether it calls one or the other."""
+    """Thin wrapper so render handlers can call app.canvas.update()."""
 
     def __init__(self, vispy_canvas) -> None:
         self._c = vispy_canvas
@@ -75,12 +74,6 @@ class _CanvasWrapper:
     def update(self) -> None:
         self._c.update()
 
-    def draw_idle(self) -> None:
-        self._c.update()
-
-    @property
-    def native(self):
-        return self._c.native
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +91,6 @@ class App(QMainWindow):
         sliders: Optional[list[SliderSpec]] = None,
         window_title: str = "3D Plot",
         geometry: str = "900x640",
-        button_width: int = 14,
         button_padx: int = 8,
         button_pady: int = 6,
     ) -> None:
@@ -263,21 +255,6 @@ class App(QMainWindow):
     def artists(self) -> Optional[SceneObjects]:
         return self._scene
 
-    @property
-    def scene(self) -> Optional[SceneObjects]:
-        return self._scene
-
-    def set_artists(self, so: SceneObjects) -> None:
-        self._scene = so
-        self._canvas_wrapper = _CanvasWrapper(so.canvas)
-
-    def set_scene(self, so: SceneObjects) -> None:
-        self.set_artists(so)
-
-    # set_figure kept for call-site compatibility (no-op with VisPy)
-    def set_figure(self, _fig) -> None:
-        pass
-
     # ── canvas access ──────────────────────────────────────────────────────
 
     @property
@@ -359,11 +336,9 @@ def launch(
     *,
     sample_size: int = 0,
     sliders: Optional[list[SliderSpec]] = None,
-    artists: Optional[SceneObjects] = None,
     on_ready: Optional[Callable[[App], None]] = None,
     window_title: str = "3D Plot",
     geometry: str = "900x640",
-    button_width: int = 14,
     button_padx: int = 8,
     button_pady: int = 6,
 ) -> None:
@@ -376,12 +351,9 @@ def launch(
         sliders=sliders,
         window_title=window_title,
         geometry=geometry,
-        button_width=button_width,
         button_padx=button_padx,
         button_pady=button_pady,
     )
-    if artists is not None:
-        app.set_artists(artists)
     if on_ready is not None:
         on_ready(app)
     app.show()

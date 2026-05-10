@@ -21,7 +21,6 @@ def reseed(app, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
             project_to_3d(dom.positions),
             dom.sizes,
             dom.edges,
-            labels=list(dom.labels),
             size_scale=config.plot.size_scale,
         )
         app.canvas.update()

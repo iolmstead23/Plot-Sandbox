@@ -1,7 +1,5 @@
 from typing import Any, Callable, Optional
 
-from packages.dom import dom
-
 _pending: list[Callable[[], None]] = []
 
 on_enqueue: Optional[Callable[[], None]] = None

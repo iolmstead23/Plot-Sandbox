@@ -47,7 +47,6 @@ class SimulationConfig:
 
 @dataclass
 class TickConfig:
-    attraction_radius: float
     dt: float
     equilibrium_threshold: float
     interval_ms: int
@@ -59,28 +58,13 @@ class TickConfig:
 class ViewConfig:
     elev: float
     azim: float
-    roll: float
-    elev_min: float
-    elev_max: float
     view_range: float
-    axis_length: float
-    label_offset: float
 
 
 @dataclass
 class PlotConfig:
     title: str
-    figsize: List[float]
     size_scale: float
-    arrow_length_ratio: float
-    quiver_linewidth: float
-    quiver_alpha: float
-    label_fontsize: int
-    label_alpha: float
-    label_color: str
-    label_stroke_width: float
-    edge_linewidth: float
-    label_max_nodes: int = 60
 
 
 @dataclass
@@ -92,7 +76,6 @@ class DomConfig:
 class UiConfig:
     window_title: str
     geometry: str
-    button_width: int
     button_padx: int
     button_pady: int
 
@@ -140,7 +123,6 @@ _DEFAULT_CONFIG: dict = {
         "use_gpu": True,
     },
     "tick": {
-        "attraction_radius": 2.5,
         "dt": 0.05,
         "equilibrium_threshold": 0.001,
         "interval_ms": 33,
@@ -150,26 +132,11 @@ _DEFAULT_CONFIG: dict = {
     "view": {
         "elev": 25.0,
         "azim": -60.0,
-        "roll": 0.0,
-        "elev_min": -75.0,
-        "elev_max": 75.0,
         "view_range": 10.0,
-        "axis_length": 50.0,
-        "label_offset": 0.4,
     },
     "plot": {
         "title": "Knowledge Graph Simulation",
-        "figsize": [10, 6],
         "size_scale": 1.0,
-        "arrow_length_ratio": 0.02,
-        "quiver_linewidth": 0.6,
-        "quiver_alpha": 0.35,
-        "label_fontsize": 10,
-        "label_alpha": 0.85,
-        "label_color": "#444444",
-        "label_stroke_width": 2.5,
-        "edge_linewidth": 0.5,
-        "label_max_nodes": 60,
     },
     "dom": {
         "weight_to_size": 40.0,
@@ -177,7 +144,6 @@ _DEFAULT_CONFIG: dict = {
     "ui": {
         "window_title": "3D Plot",
         "geometry": "900x600",
-        "button_width": 14,
         "button_padx": 8,
         "button_pady": 6,
     },
@@ -216,7 +182,6 @@ _SCHEMA: dict = {
         "use_gpu": bool,
     },
     "tick": {
-        "attraction_radius": (int, float),
         "dt": (int, float),
         "equilibrium_threshold": (int, float),
         "interval_ms": int,
@@ -226,26 +191,11 @@ _SCHEMA: dict = {
     "view": {
         "elev": (int, float),
         "azim": (int, float),
-        "roll": (int, float),
-        "elev_min": (int, float),
-        "elev_max": (int, float),
         "view_range": (int, float),
-        "axis_length": (int, float),
-        "label_offset": (int, float),
     },
     "plot": {
         "title": str,
-        "figsize": list,  # validated for length/element type below
         "size_scale": (int, float),
-        "arrow_length_ratio": (int, float),
-        "quiver_linewidth": (int, float),
-        "quiver_alpha": (int, float),
-        "label_fontsize": int,
-        "label_alpha": (int, float),
-        "label_color": str,
-        "label_stroke_width": (int, float),
-        "edge_linewidth": (int, float),
-        "label_max_nodes": int,
     },
     "dom": {
         "weight_to_size": (int, float),
@@ -253,7 +203,6 @@ _SCHEMA: dict = {
     "ui": {
         "window_title": str,
         "geometry": str,
-        "button_width": int,
         "button_padx": int,
         "button_pady": int,
     },
@@ -286,10 +235,6 @@ def _validate(data: dict) -> None:
     focus = data["physics"]["focus"]
     if len(focus) != 3 or not all(isinstance(v, (int, float)) for v in focus):
         raise TypeError("config.physics.focus must be a list of 3 numbers")
-
-    figsize = data["plot"]["figsize"]
-    if len(figsize) != 2 or not all(isinstance(v, (int, float)) for v in figsize):
-        raise TypeError("config.plot.figsize must be a list of 2 numbers")
 
     if data["simulation"]["dims"] < 1:
         raise ValueError("config.simulation.dims must be >= 1")

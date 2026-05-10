@@ -83,13 +83,12 @@ def main() -> None:
         buttons=BUTTON_HANDLERS,
         sample_size=dom.n,
         sliders=sliders,
-        artists=scene_objects,
+
         on_ready=lambda app: app.start_tick(
             physics_tick, interval_ms=config.tick.interval_ms
         ),
         window_title=config.ui.window_title,
         geometry=config.ui.geometry,
-        button_width=config.ui.button_width,
         button_padx=config.ui.button_padx,
         button_pady=config.ui.button_pady,
     )

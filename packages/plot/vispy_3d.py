@@ -10,7 +10,6 @@ update_vispy_scene() — hot path called every render frame (~16 ms)
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -225,7 +224,6 @@ def update_vispy_scene(
     positions: np.ndarray,
     sizes: np.ndarray,
     edges: np.ndarray,
-    labels: Optional[list[str]] = None,
     *,
     size_scale: float = 1.0,
 ) -> None:

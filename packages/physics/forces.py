@@ -125,7 +125,7 @@ def _pairwise_repulsion_sparse(
     cutoff: float,
 ) -> np.ndarray:
     """Sparse repulsion (CPU only): O(N log N + P) via scipy cKDTree."""
-    from scipy.spatial import cKDTree
+    from scipy.spatial import cKDTree  # type: ignore[attr-defined]
 
     n, d = positions.shape
     tree = cKDTree(positions)
@@ -252,7 +252,7 @@ def _pairwise_attraction_sparse_cpu(
     cutoff: float,
 ) -> np.ndarray:
     """CPU sparse attraction: O(N log N + P·D) via scipy cKDTree."""
-    from scipy.spatial import cKDTree
+    from scipy.spatial import cKDTree  # type: ignore[attr-defined]
 
     n, d = positions.shape
     tree = cKDTree(positions)

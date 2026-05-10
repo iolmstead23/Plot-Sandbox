@@ -1,4 +1,4 @@
-"""ui: tkinter scaffold embedding a 3D matplotlib plot."""
+"""ui: PyQt6 + VisPy application window."""
 
 from .app import App, launch
 

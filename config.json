@@ -26,7 +26,6 @@
     "use_gpu": true
   },
   "tick": {
-    "attraction_radius": 2.5,
     "dt": 0.05,
     "equilibrium_threshold": 0.001,
     "interval_ms": 33,
@@ -36,26 +35,11 @@
   "view": {
     "elev": 25.0,
     "azim": -60.0,
-    "roll": 0.0,
-    "elev_min": -75.0,
-    "elev_max": 75.0,
-    "view_range": 10.0,
-    "axis_length": 50.0,
-    "label_offset": 0.4
+    "view_range": 10.0
   },
   "plot": {
     "title": "Knowledge Graph Simulation",
-    "figsize": [7.2, 7.2],
-    "size_scale": 1.0,
-    "arrow_length_ratio": 0.02,
-    "quiver_linewidth": 0.6,
-    "quiver_alpha": 0.35,
-    "label_fontsize": 10,
-    "label_alpha": 0.6,
-    "label_color": "#444444",
-    "label_stroke_width": 2.5,
-    "edge_linewidth": 0.5,
-    "label_max_nodes": 60
+    "size_scale": 1.0
   },
   "dom": {
     "weight_to_size": 3.0
@@ -63,7 +47,6 @@
   "ui": {
     "window_title": "3D Plot",
     "geometry": "1920x1080",
-    "button_width": 14,
     "button_padx": 8,
     "button_pady": 6
   }

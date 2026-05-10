@@ -1,9 +1,9 @@
 """Continuous background physics thread for GPU mode.
 
 When GPU is active, physics runs as fast as the GPU allows in a daemon
-thread, fully decoupled from the Tkinter render interval. CuPy releases
+thread, fully decoupled from the Qt timer render interval. CuPy releases
 the GIL during kernel execution, so GPU computation runs in genuine
-parallel with the CPU Agg renderer in the main thread.
+parallel with the Qt main thread renderer.
 
 DOM positions are protected by `positions_lock`. The main thread holds
 the lock only for the duration of a shallow array copy — typically a few
@@ -11,8 +11,8 @@ microseconds — so neither side blocks the other for long.
 
 Life cycle
 ----------
-start()   called when the Tkinter tick starts (on_ready / after reseed)
-stop()    called when the Tkinter tick stops (convergence / reseed)
+start()   called when the Qt timer tick starts (on_ready / after reseed)
+stop()    called when the Qt timer tick stops (convergence / reseed)
 reheat()  called on any structural DOM change to clear the converged flag
 """
 
@@ -23,8 +23,8 @@ import numpy as np
 
 from packages.config import config
 from packages.dom import dom
-from packages.physics import relax_step
-from packages.physics._backend import to_device, to_numpy
+from packages.physics import cool, relax_step
+from packages.physics import to_device, to_numpy
 
 from ..state import temperature
 from . import _params
@@ -127,8 +127,8 @@ def _loop() -> None:
                 temperature=T,
                 params=params,
             )
-            T = max(config.physics.min_temperature,
-                    T * config.physics.cooling_factor)
+            T = cool(T, cooling_factor=config.physics.cooling_factor,
+                     min_temperature=config.physics.min_temperature)
 
         # Single sync point: one download for the whole batch.
         # Cast back to float64 so the DOM always stores float64 positions.
