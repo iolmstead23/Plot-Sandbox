@@ -28,7 +28,7 @@ class PhysicsConfig:
     cooling_factor: float
     min_temperature: float
     k_edge: float
-    damping: float
+    edge_rest_length: float
 
 
 @dataclass
@@ -119,7 +119,7 @@ _DEFAULT_CONFIG: dict = {
         "cooling_factor": 0.98,
         "min_temperature": 0.05,
         "k_edge": 0.08,
-        "damping": 0.5,
+        "edge_rest_length": 5.0,
     },
     "simulation": {
         "node_count": 30,
@@ -189,7 +189,7 @@ _SCHEMA: dict = {
         "cooling_factor": (int, float),
         "min_temperature": (int, float),
         "k_edge": (int, float),
-        "damping": (int, float),
+        "edge_rest_length": (int, float),
     },
     "simulation": {
         "node_count": int,

@@ -2,12 +2,11 @@ from packages.config import config
 from packages.dom import dom
 
 from ..dom import mutate
-from ..state import app as app_state, momentum, temperature
+from ..state import app as app_state, temperature
 
 
 def _on_dom_change(_dom) -> None:
     temperature.reset()
-    momentum.reset()
 
 
 def _on_mutation_enqueued() -> None:

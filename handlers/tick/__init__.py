@@ -6,7 +6,7 @@ from packages.physics import relax_step
 from packages.plot import project_to_3d, update_scatter_3d
 
 from ..dom import mutate
-from ..state import app as app_state, momentum, temperature
+from ..state import app as app_state, temperature
 from . import _callbacks, _params
 
 _callbacks.wire()
@@ -27,7 +27,7 @@ def physics_tick(app) -> None:
             temperature=temperature.get(),
             params=_params.build(),
         )
-        step = momentum.smooth(proposed - dom.positions)
+        step = proposed - dom.positions
         max_disp = float(np.linalg.norm(step, axis=1).max())
         converged = max_disp < config.tick.equilibrium_threshold
         dom._set_positions(dom.positions + step)
