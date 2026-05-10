@@ -20,4 +20,5 @@ def build() -> dict:
         "max_step": p.max_step,
         "F_max": p.F_max,
         "focus": _focus,
+        "repulsion_cutoff": p.repulsion_cutoff,
     }

@@ -30,21 +30,46 @@ def central_gravity(
     return -k_g * weights[:, None] * (delta / r_soft)
 
 
+_scipy_ok: bool | None = None
+
+
+def _scipy_available() -> bool:
+    global _scipy_ok
+    if _scipy_ok is None:
+        try:
+            import scipy.spatial  # noqa: F401
+            _scipy_ok = True
+        except ImportError:
+            _scipy_ok = False
+    return _scipy_ok
+
+
 def pairwise_repulsion(
     positions: np.ndarray,
     weights: np.ndarray,
     *,
     k_r: float,
     soft_core_radius: float,
+    cutoff: float = 0.0,
 ) -> np.ndarray:
     n = positions.shape[0]
     if n < 2:
         return np.zeros_like(positions)
 
-    diff = positions[:, None, :] - positions[None, :, :]  # shape (N, N, D): node minus neighbor
+    # Sparse path: skip pairs beyond `cutoff`. O(N log N + P) vs O(N²).
+    # KDTree overhead is worthwhile above ~150 nodes; below that the dense
+    # NumPy broadcast is faster due to lower constant factors.
+    if cutoff > 0.0 and n >= 150 and _scipy_available():
+        return _pairwise_repulsion_sparse(positions, weights, k_r=k_r,
+                                          soft_core_radius=soft_core_radius,
+                                          cutoff=cutoff)
+
+    # Dense path — allocates (N, N, D). Stays on this path for small N or
+    # when scipy is absent.
+    diff = positions[:, None, :] - positions[None, :, :]  # (N, N, D)
     d = np.linalg.norm(diff, axis=-1)
     d_safe = np.where(d > 0.0, d, 1.0)
-    direction = diff / d_safe[..., None]  # unit vectors away from j
+    direction = diff / d_safe[..., None]
 
     # Smoothed denominator 1/(d² + ε²): bounded at d=0, converges to 1/d² far
     # away, and C∞ everywhere — no kink at the soft-core boundary.
@@ -52,8 +77,52 @@ def pairwise_repulsion(
     np.fill_diagonal(mag, 0.0)
 
     mass_pair = weights[:, None] * weights[None, :]
-    forces = (k_r * mag * mass_pair)[..., None] * direction  # (N, N, 3)
+    forces = (k_r * mag * mass_pair)[..., None] * direction  # (N, N, D)
     return forces.sum(axis=1)
+
+
+def _pairwise_repulsion_sparse(
+    positions: np.ndarray,
+    weights: np.ndarray,
+    *,
+    k_r: float,
+    soft_core_radius: float,
+    cutoff: float,
+) -> np.ndarray:
+    """Sparse repulsion: only compute forces for pairs within `cutoff` distance.
+
+    Uses scipy cKDTree.query_pairs to enumerate nearby pairs without building
+    the full N×N distance matrix. Scatter accumulation via np.bincount avoids
+    the slow np.add.at unbuffered loop.
+    """
+    from scipy.spatial import cKDTree
+
+    n, d = positions.shape
+    tree = cKDTree(positions)
+    try:
+        pairs = tree.query_pairs(cutoff, output_type="ndarray")
+    except TypeError:
+        raw = tree.query_pairs(cutoff)
+        pairs = np.array(list(raw), dtype=np.int64) if raw else np.zeros((0, 2), dtype=np.int64)
+
+    forces = np.zeros_like(positions)
+    if pairs.shape[0] == 0:
+        return forces
+
+    i_idx, j_idx = pairs[:, 0], pairs[:, 1]
+    diff = positions[i_idx] - positions[j_idx]
+    d_sq = np.einsum("ij,ij->i", diff, diff)
+    d_safe = np.sqrt(np.maximum(d_sq, 1e-12))
+    direction = diff / d_safe[:, None]
+    mag = 1.0 / (d_sq + soft_core_radius * soft_core_radius)
+    mass_pair = weights[i_idx] * weights[j_idx]
+    f = (k_r * mag * mass_pair)[:, None] * direction  # (P, D)
+
+    # np.bincount scatter — vectorised per dimension, much faster than add.at
+    for dim in range(d):
+        forces[:, dim] += np.bincount(i_idx, weights=f[:, dim], minlength=n)
+        forces[:, dim] -= np.bincount(j_idx, weights=f[:, dim], minlength=n)
+    return forces
 
 
 def pairwise_attraction(

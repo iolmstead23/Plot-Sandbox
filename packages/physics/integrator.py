@@ -55,7 +55,10 @@ def relax_step(
             soft_core_radius=p["soft_core_radius"],
         )
         + pairwise_repulsion(
-            positions, weights, k_r=p["k_repel"], soft_core_radius=p["soft_core_radius"]
+            positions, weights,
+            k_r=p["k_repel"],
+            soft_core_radius=p["soft_core_radius"],
+            cutoff=p.get("repulsion_cutoff", 0.0),
         )
         + attract
     )

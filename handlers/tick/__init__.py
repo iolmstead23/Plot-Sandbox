@@ -16,10 +16,13 @@ _callbacks.wire()
 _last_tick_time: float = 0.0
 _fps: float = 0.0
 _tick_ms: float = 0.0
+_render_counter: int = 0
+# (n_nodes, n_edges) snapshot — detects structural DOM changes between renders.
+_last_render_structure: tuple = (-1, -1)
 
 
 def physics_tick(app) -> None:
-    global _last_tick_time, _fps, _tick_ms
+    global _last_tick_time, _fps, _tick_ms, _render_counter, _last_render_structure
 
     tick_start = time.perf_counter()
     app_state.app = app
@@ -41,15 +44,24 @@ def physics_tick(app) -> None:
         converged = max_disp < config.tick.equilibrium_threshold
         dom._set_positions(dom.positions + step)
 
-    if app.artists is not None:
+    _render_counter += 1
+    render_every = max(1, config.tick.render_every)
+    if app.artists is not None and (_render_counter % render_every == 0):
+        current_structure = (dom.n, dom.edges.shape[0])
+        structure_changed = current_structure != _last_render_structure
+        _last_render_structure = current_structure
+
         update_scatter_3d(
             app.artists,
             project_to_3d(dom.positions),
             dom.sizes,
             dom.edges,
-            labels=list(dom.labels),
+            # Only send label strings on structural changes — avoids allocating
+            # a list copy and re-writing text/style on every physics tick.
+            labels=list(dom.labels) if structure_changed else None,
             view_format=vars(config.view),
             plot_style=vars(config.plot),
+            positions_only=not structure_changed,
         )
         app.canvas.draw_idle()
 

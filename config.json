@@ -11,7 +11,8 @@
     "cooling_factor": 0.98,
     "min_temperature": 0.05,
     "k_edge": 0.08,
-    "edge_rest_length": 5.0
+    "edge_rest_length": 5.0,
+    "repulsion_cutoff": 6.0
   },
   "simulation": {
     "node_count": 100,
@@ -27,7 +28,8 @@
     "attraction_radius": 2.5,
     "dt": 0.05,
     "equilibrium_threshold": 0.001,
-    "interval_ms": 33
+    "interval_ms": 33,
+    "render_every": 2
   },
   "view": {
     "elev": 25.0,
@@ -50,7 +52,8 @@
     "label_alpha": 0.6,
     "label_color": "#444444",
     "label_stroke_width": 2.5,
-    "edge_linewidth": 0.5
+    "edge_linewidth": 0.5,
+    "label_max_nodes": 60
   },
   "dom": {
     "weight_to_size": 40.0
