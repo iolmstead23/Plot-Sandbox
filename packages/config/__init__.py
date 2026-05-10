@@ -40,6 +40,7 @@ class SimulationConfig:
     inner_radius_fraction: float
     outer_radius_fraction: float
     dims: int
+    max_degree: int = 6
 
 
 @dataclass
@@ -129,6 +130,7 @@ _DEFAULT_CONFIG: dict = {
         "inner_radius_fraction": 0.1,
         "outer_radius_fraction": 0.9,
         "dims": 3,
+        "max_degree": 6,
     },
     "tick": {
         "attraction_radius": 2.5,
@@ -199,6 +201,7 @@ _SCHEMA: dict = {
         "inner_radius_fraction": (int, float),
         "outer_radius_fraction": (int, float),
         "dims": int,
+        "max_degree": int,
     },
     "tick": {
         "attraction_radius": (int, float),

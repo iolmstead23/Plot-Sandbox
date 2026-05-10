@@ -20,7 +20,8 @@
     "spawn_distance": 4.0,
     "inner_radius_fraction": 0.1,
     "outer_radius_fraction": 0.9,
-    "dims": 3
+    "dims": 3,
+    "max_degree": 6
   },
   "tick": {
     "attraction_radius": 2.5,
