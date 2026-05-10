@@ -1,10 +1,8 @@
-# Plot-Sandbox
-
-<img src="readme.gif" width="640" alt="Plot-Sandbox Physics Simulation" style="display: block; margin-left: auto; margin-right: auto;">
-
 ## Overview
 
 Plot-Sandbox is a Python visualization tool that simulates how nodes interact under physical forces. Each node experiences gravity toward a central focus point, repulsion from nearby nodes, and attraction between connected pairs. The system evolves over time until reaching equilibrium, providing insight into how data structures compress and organize themselves within vector space.
+
+<img src="readme_img.gif" width="640" alt="Plot-Sandbox Physics Simulation" style="display: block; margin-left: auto; margin-right: auto;">
 
 ## How It Works
 
