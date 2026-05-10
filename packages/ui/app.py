@@ -114,15 +114,31 @@ class App(tk.Tk):
     def canvas(self) -> FigureCanvasTkAgg:
         return self._canvas
 
-    def _build_banner(self, n: int, temperature: Optional[float] = None) -> str:
+    def _build_banner(
+        self,
+        n: int,
+        temperature: Optional[float] = None,
+        fps: Optional[float] = None,
+        tick_ms: Optional[float] = None,
+    ) -> str:
         parts: list[str] = [f"n={n}"]
         if temperature is not None:
             parts.append(f"T={temperature:.3f}")
+        if fps is not None:
+            parts.append(f"FPS={fps:.1f}")
+        if tick_ms is not None:
+            parts.append(f"tick={tick_ms:.1f}ms")
         parts.append("X (Red)  Y (Green)  Z (Blue)")
         return "  |  ".join(parts)
 
-    def update_banner(self, n: int, temperature: Optional[float] = None) -> None:
-        self._overlay.config(text=self._build_banner(n, temperature))
+    def update_banner(
+        self,
+        n: int,
+        temperature: Optional[float] = None,
+        fps: Optional[float] = None,
+        tick_ms: Optional[float] = None,
+    ) -> None:
+        self._overlay.config(text=self._build_banner(n, temperature, fps, tick_ms))
 
     def start_tick(
         self,
