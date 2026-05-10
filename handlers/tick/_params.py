@@ -15,6 +15,7 @@ def build() -> dict:
         "k_repel": p.k_repel,
         "k_attract": p.k_attract,
         "k_edge": p.k_edge,
+        "edge_rest_length": p.edge_rest_length,
         "soft_core_radius": p.soft_core_radius,
         "max_step": p.max_step,
         "F_max": p.F_max,

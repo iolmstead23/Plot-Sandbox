@@ -1,8 +1,8 @@
 {
   "physics": {
     "k_central": 2.0,
-    "k_repel": 10.0,
-    "k_attract": 0.8,
+    "k_repel": 20.0,
+    "k_attract": 0.5,
     "soft_core_radius": 0.6,
     "max_step": 0.4,
     "F_max": 200.0,
@@ -11,12 +11,12 @@
     "cooling_factor": 0.98,
     "min_temperature": 0.05,
     "k_edge": 0.08,
-    "damping": 0.5
+    "edge_rest_length": 5.0
   },
   "simulation": {
-    "node_count": 30,
+    "node_count": 50,
     "weight_min": 0.5,
-    "weight_max": 3.0,
+    "weight_max": 10.0,
     "spawn_distance": 4.0,
     "inner_radius_fraction": 0.1,
     "outer_radius_fraction": 0.9,

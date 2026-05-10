@@ -14,11 +14,20 @@ def central_gravity(
     *,
     k_g: float,
     focus: np.ndarray,
+    soft_core_radius: float,
 ) -> np.ndarray:
-    # Linear pull toward focus, scaled by mass. Heavier nodes feel a stronger
-    # tug, so they settle nearer the center. Linear (not 1/r^2) is the stable
-    # choice for force-directed layouts.
-    return -k_g * weights[:, None] * (positions - focus[None, :])
+    # Constant-magnitude inward force, scaled by mass. Unlike a linear spring,
+    # this does not go to zero at the focus. Every node feels the same inward
+    # pressure regardless of distance. Repulsion prevents collapse — not the
+    # weakening of gravity near the center.
+    #
+    # The soft-core denominator blends to a linear restoring force inside the
+    # core radius. Without this, a node that crosses the focus flips direction
+    # each tick and vibrates in place indefinitely.
+    delta = positions - focus[None, :]
+    r_sq = np.sum(delta * delta, axis=-1, keepdims=True)
+    r_soft = np.sqrt(r_sq + soft_core_radius * soft_core_radius)
+    return -k_g * weights[:, None] * (delta / r_soft)
 
 
 def pairwise_repulsion(
@@ -32,19 +41,14 @@ def pairwise_repulsion(
     if n < 2:
         return np.zeros_like(positions)
 
-    diff = positions[:, None, :] - positions[None, :, :]  # i - j, shape (N, N, 3)
+    diff = positions[:, None, :] - positions[None, :, :]  # shape (N, N, D): node minus neighbor
     d = np.linalg.norm(diff, axis=-1)
     d_safe = np.where(d > 0.0, d, 1.0)
     direction = diff / d_safe[..., None]  # unit vectors away from j
 
-    # Inside the core, flatten to 1/r0^2 (matching inv_sq at d=r0) so the
-    # magnitude is C0-continuous across the boundary. A linear ramp to zero
-    # would drop from 0 just below r0 to 1/r0^2 just above, snapping the
-    # force as pairs drift across the boundary tick-to-tick.
-    flat_mag = 1.0 / (soft_core_radius * soft_core_radius)
-    inv_sq = 1.0 / (d_safe * d_safe)
-    near = d < soft_core_radius
-    mag = np.where(near, flat_mag, inv_sq)
+    # Smoothed denominator 1/(d² + ε²): bounded at d=0, converges to 1/d² far
+    # away, and C∞ everywhere — no kink at the soft-core boundary.
+    mag = 1.0 / (d_safe * d_safe + soft_core_radius * soft_core_radius)
     np.fill_diagonal(mag, 0.0)
 
     mass_pair = weights[:, None] * weights[None, :]
@@ -68,7 +72,7 @@ def pairwise_attraction(
     d_safe = np.where(d > 0.0, d, 1.0)
     direction = diff / d_safe[..., None]
 
-    # Soft core flattens magnitude under r0 to 1/r0^2 so close pairs don't
+    # Soft core flattens magnitude inside the core radius so close pairs do not
     # gain unbounded pull and fight the repulsion forever.
     flat_mag = 1.0 / (soft_core_radius * soft_core_radius)
     inv_sq = 1.0 / (d_safe * d_safe)
@@ -83,13 +87,16 @@ def pairwise_attraction(
 
 def edge_attraction(
     positions: np.ndarray,
-    weights: np.ndarray,
     edges: np.ndarray,
     *,
     k_e: float,
-    soft_core_radius: float,
+    rest_length: float,
 ) -> np.ndarray:
-    """Attraction only along explicit edges. Replaces pairwise_attraction for graph mode."""
+    """Hooke's Law spring along explicit edges with a defined rest length.
+
+    F = k_e * (d - L₀). Attractive when d > L₀, repulsive when d < L₀, zero
+    at d == L₀. Equilibrium is geometrically fixed rather than emergent.
+    """
     forces = np.zeros_like(positions)
     if edges.shape[0] == 0:
         return forces
@@ -99,11 +106,7 @@ def edge_attraction(
     d = np.linalg.norm(diff, axis=-1)
     d_safe = np.where(d > 0.0, d, 1.0)
     direction = diff / d_safe[:, None]
-    flat_mag = 1.0 / (soft_core_radius * soft_core_radius)
-    inv_sq = 1.0 / (d_safe * d_safe)
-    mag = np.where(d < soft_core_radius, flat_mag, inv_sq)
-    mass_pair = weights[i_idx] * weights[j_idx]
-    f = (k_e * mag * mass_pair)[:, None] * direction
+    f = (k_e * (d - rest_length))[:, None] * direction
     np.add.at(forces, i_idx, f)
     np.add.at(forces, j_idx, -f)
     return forces

@@ -34,10 +34,9 @@ def relax_step(
     if edges is not None and edges.shape[0] > 0:
         attract = edge_attraction(
             positions,
-            weights,
             edges,
             k_e=p["k_edge"],
-            soft_core_radius=p["soft_core_radius"],
+            rest_length=p["edge_rest_length"],
         )
     else:
         attract = pairwise_attraction(
@@ -48,7 +47,13 @@ def relax_step(
         )
 
     F = (
-        central_gravity(positions, weights, k_g=p["k_central"], focus=p["focus"])
+        central_gravity(
+            positions,
+            weights,
+            k_g=p["k_central"],
+            focus=p["focus"],
+            soft_core_radius=p["soft_core_radius"],
+        )
         + pairwise_repulsion(
             positions, weights, k_r=p["k_repel"], soft_core_radius=p["soft_core_radius"]
         )
