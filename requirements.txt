@@ -1,3 +1,6 @@
-matplotlib
 numpy
 scipy
+cupy-cuda13x
+vispy
+pyqt6
+numba

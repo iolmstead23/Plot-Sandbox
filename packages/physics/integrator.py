@@ -1,16 +1,18 @@
-"""Position-only relaxation integrator with cooling temperature.
+"""Position-only relaxation integrator — array-backend-agnostic.
 
 No velocities. Each tick: sum forces, cap per-node magnitude, zero pinned
 rows, scale by temperature * dt, take a small step. Temperature decays each
 frame; the caller bumps it back to initial_temperature after any structural
 DOM change so the layout re-settles.
 
-All tunable constants are supplied by the caller via `params` and the
-`cooling_factor`/`min_temperature` kwargs — nothing is hardcoded here.
+All arrays (positions, weights, pinned, edges) must be on the same device.
+The tick handler in handlers/tick/__init__.py is responsible for uploading
+them to GPU before calling relax_step and downloading the result back.
 """
 
 import numpy as np
 
+from ._backend import get_module
 from .forces import (
     central_gravity,
     edge_attraction,
@@ -29,6 +31,7 @@ def relax_step(
     temperature: float,
     params: dict,
 ) -> np.ndarray:
+    xp = get_module(positions)
     p = params
 
     if edges is not None and edges.shape[0] > 0:
@@ -44,6 +47,7 @@ def relax_step(
             weights,
             k_a=p["k_attract"],
             soft_core_radius=p["soft_core_radius"],
+            cutoff=p.get("repulsion_cutoff", 0.0),
         )
 
     F = (
@@ -55,7 +59,8 @@ def relax_step(
             soft_core_radius=p["soft_core_radius"],
         )
         + pairwise_repulsion(
-            positions, weights,
+            positions,
+            weights,
             k_r=p["k_repel"],
             soft_core_radius=p["soft_core_radius"],
             cutoff=p.get("repulsion_cutoff", 0.0),
@@ -63,20 +68,17 @@ def relax_step(
         + attract
     )
 
-    # Per-node cap on force magnitude (preserves direction, bounds blow-ups).
-    norms = np.linalg.norm(F, axis=1, keepdims=True)
-    scale = np.minimum(1.0, p["F_max"] / np.where(norms > 0.0, norms, 1.0))
+    # Per-node force magnitude cap — preserves direction, bounds blow-ups.
+    norms = xp.linalg.norm(F, axis=1, keepdims=True)
+    scale = xp.minimum(1.0, p["F_max"] / xp.where(norms > 0.0, norms, 1.0))
     F = F * scale
 
     F[pinned] = 0.0
 
     step = F * dt * temperature
-    # Cap step magnitude per node, preserving direction. Per-axis clipping
-    # would distort direction whenever a single component saturates and is
-    # a known cause of jitter near equilibrium.
-    step_norms = np.linalg.norm(step, axis=1, keepdims=True)
-    step_scale = np.minimum(
-        1.0, p["max_step"] / np.where(step_norms > 0.0, step_norms, 1.0)
+    step_norms = xp.linalg.norm(step, axis=1, keepdims=True)
+    step_scale = xp.minimum(
+        1.0, p["max_step"] / xp.where(step_norms > 0.0, step_norms, 1.0)
     )
     step = step * step_scale
     return positions + step

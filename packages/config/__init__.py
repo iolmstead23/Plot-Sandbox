@@ -42,6 +42,7 @@ class SimulationConfig:
     outer_radius_fraction: float
     dims: int
     max_degree: int = 6
+    use_gpu: bool = True
 
 
 @dataclass
@@ -51,6 +52,7 @@ class TickConfig:
     equilibrium_threshold: float
     interval_ms: int
     render_every: int = 1
+    physics_substeps: int = 8
 
 
 @dataclass
@@ -135,6 +137,7 @@ _DEFAULT_CONFIG: dict = {
         "outer_radius_fraction": 0.9,
         "dims": 3,
         "max_degree": 6,
+        "use_gpu": True,
     },
     "tick": {
         "attraction_radius": 2.5,
@@ -142,6 +145,7 @@ _DEFAULT_CONFIG: dict = {
         "equilibrium_threshold": 0.001,
         "interval_ms": 33,
         "render_every": 1,
+        "physics_substeps": 8,
     },
     "view": {
         "elev": 25.0,
@@ -209,6 +213,7 @@ _SCHEMA: dict = {
         "outer_radius_fraction": (int, float),
         "dims": int,
         "max_degree": int,
+        "use_gpu": bool,
     },
     "tick": {
         "attraction_radius": (int, float),
@@ -216,6 +221,7 @@ _SCHEMA: dict = {
         "equilibrium_threshold": (int, float),
         "interval_ms": int,
         "render_every": int,
+        "physics_substeps": int,
     },
     "view": {
         "elev": (int, float),
