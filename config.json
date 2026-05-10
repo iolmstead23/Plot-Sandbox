@@ -14,13 +14,14 @@
     "edge_rest_length": 5.0
   },
   "simulation": {
-    "node_count": 50,
+    "node_count": 100,
     "weight_min": 0.5,
     "weight_max": 10.0,
     "spawn_distance": 4.0,
     "inner_radius_fraction": 0.1,
     "outer_radius_fraction": 0.9,
-    "dims": 3
+    "dims": 3,
+    "max_degree": 6
   },
   "tick": {
     "attraction_radius": 2.5,
@@ -40,7 +41,7 @@
   },
   "plot": {
     "title": "Knowledge Graph Simulation",
-    "figsize": [10, 6],
+    "figsize": [7.2, 7.2],
     "size_scale": 1.0,
     "arrow_length_ratio": 0.02,
     "quiver_linewidth": 0.6,
@@ -56,7 +57,7 @@
   },
   "ui": {
     "window_title": "3D Plot",
-    "geometry": "900x600",
+    "geometry": "880x720",
     "button_width": 14,
     "button_padx": 8,
     "button_pady": 6

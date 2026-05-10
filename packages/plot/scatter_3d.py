@@ -81,6 +81,22 @@ def _install_camera_clamp(
     figure.canvas.mpl_connect("motion_notify_event", clamp)
 
 
+def _install_scroll_zoom(figure: Figure, ax, focus: tuple, view_range: float) -> None:
+    _state = {"r": view_range}
+
+    def on_scroll(event):
+        factor = 0.9 if event.button == "up" else 1.0 / 0.9
+        _state["r"] = max(1.0, _state["r"] * factor)
+        r = _state["r"]
+        fx, fy, fz = focus
+        ax.set_xlim(fx - r, fx + r)
+        ax.set_ylim(fy - r, fy + r)
+        ax.set_zlim(fz - r, fz + r)
+        figure.canvas.draw_idle()
+
+    figure.canvas.mpl_connect("scroll_event", on_scroll)
+
+
 def build_scatter_3d_figure(
     positions: np.ndarray,
     sizes: np.ndarray,
@@ -212,8 +228,9 @@ def build_scatter_3d_figure(
         elev_min=view_format["elev_min"],
         elev_max=view_format["elev_max"],
     )
+    _install_scroll_zoom(figure, ax, focus, R)
 
-    figure.tight_layout()
+    figure.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
     return figure, Artists(
         figure=figure,

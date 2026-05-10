@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from packages.config import config
@@ -11,8 +13,15 @@ from . import _callbacks, _params
 
 _callbacks.wire()
 
+_last_tick_time: float = 0.0
+_fps: float = 0.0
+_tick_ms: float = 0.0
+
 
 def physics_tick(app) -> None:
+    global _last_tick_time, _fps, _tick_ms
+
+    tick_start = time.perf_counter()
     app_state.app = app
     mutate.drain()
 
@@ -45,7 +54,15 @@ def physics_tick(app) -> None:
         app.canvas.draw_idle()
 
     temperature.step()
-    app.update_banner(dom.n, temperature.get())
+
+    now = time.perf_counter()
+    _tick_ms = (now - tick_start) * 1000.0
+    if _last_tick_time > 0.0:
+        elapsed = now - _last_tick_time
+        _fps = 1.0 / elapsed if elapsed > 0 else 0.0
+    _last_tick_time = now
+
+    app.update_banner(dom.n, temperature.get(), fps=_fps, tick_ms=_tick_ms)
 
     if converged:
         app.stop_tick()

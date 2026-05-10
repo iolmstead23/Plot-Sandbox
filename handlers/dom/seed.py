@@ -3,37 +3,40 @@ import numpy as np
 from packages.config import config
 from packages.dom import dom
 from packages.physics import initial_layout
-from packages.state import SAMPLE_EDGES, SAMPLE_LABELS, SAMPLE_WEIGHTS
 
 
 def seed_physics_dom(rng: np.random.Generator) -> None:
     dom.clear()
     sim = config.simulation
+    n = sim.node_count
 
-    # Rescale degree-based graph weights to span [weight_min, weight_max] so
-    # the config range actually controls variance for the initial layout.
-    graph_weights = np.asarray(SAMPLE_WEIGHTS, dtype=np.float64)
-    w_lo, w_hi = graph_weights.min(), graph_weights.max()
+    # Build a random undirected graph: each node tries to connect to
+    # k random peers where k ~ Uniform[1, max_degree].
+    edges: set[tuple[int, int]] = set()
+    for i in range(n):
+        k = int(rng.integers(1, sim.max_degree + 1))
+        candidates = np.delete(np.arange(n), i)
+        targets = rng.choice(candidates, size=min(k, len(candidates)), replace=False)
+        for t in targets:
+            a, b = (i, int(t)) if i < int(t) else (int(t), i)
+            edges.add((a, b))
+
+    # Derive initial weights from degree so heavier nodes have more connections.
+    degrees = np.zeros(n, dtype=np.float64)
+    for a, b in edges:
+        degrees[a] += 1.0
+        degrees[b] += 1.0
+    raw = np.maximum(degrees, 1.0)
+    w_lo, w_hi = float(raw.min()), float(raw.max())
     if w_hi > w_lo:
-        graph_weights = sim.weight_min + (graph_weights - w_lo) / (w_hi - w_lo) * (
+        weights = sim.weight_min + (raw - w_lo) / (w_hi - w_lo) * (
             sim.weight_max - sim.weight_min
         )
     else:
-        graph_weights = np.full_like(
-            graph_weights, (sim.weight_min + sim.weight_max) / 2.0
-        )
-
-    n_graph = len(SAMPLE_LABELS)
-    n_extra = max(0, sim.node_count - n_graph)
-    extra_weights = (
-        rng.uniform(sim.weight_min, sim.weight_max, size=n_extra).astype(np.float64)
-        if n_extra > 0
-        else np.empty(0, dtype=np.float64)
-    )
-    all_weights = np.concatenate([graph_weights, extra_weights])
+        weights = np.full(n, (sim.weight_min + sim.weight_max) / 2.0, dtype=np.float64)
 
     positions = initial_layout(
-        all_weights,
+        weights,
         view_range=config.view.view_range,
         rng=rng,
         inner_radius_fraction=sim.inner_radius_fraction,
@@ -41,14 +44,8 @@ def seed_physics_dom(rng: np.random.Generator) -> None:
         dims=sim.dims,
     )
 
-    label_to_index: dict[str, int] = {}
-    for i, label in enumerate(SAMPLE_LABELS):
-        dom.add_node(float(all_weights[i]), positions[i], label)
-        label_to_index[label] = i
+    for i in range(n):
+        dom.add_node(float(weights[i]), positions[i])
 
-    for i in range(n_extra):
-        dom.add_node(float(extra_weights[i]), positions[n_graph + i])
-
-    for a, b in SAMPLE_EDGES:
-        if a in label_to_index and b in label_to_index:
-            dom.add_edge(label_to_index[a], label_to_index[b])
+    for a, b in sorted(edges):
+        dom.add_edge(a, b)
