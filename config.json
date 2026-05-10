@@ -15,7 +15,7 @@
     "repulsion_cutoff": 6.0
   },
   "simulation": {
-    "node_count": 2000,
+    "node_count": 500,
     "weight_min": 0.5,
     "weight_max": 10.0,
     "spawn_distance": 4.0,

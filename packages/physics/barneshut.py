@@ -58,6 +58,7 @@ def repulsion(
         raise ValueError(f"Barnes-Hut requires D=3, got D={positions.shape[1]}")
 
     _ensure_compiled()
+    assert _jit_fn is not None
     pos64 = np.ascontiguousarray(positions, dtype=np.float64)
     w64   = np.ascontiguousarray(weights,   dtype=np.float64)
     forces = _jit_fn(pos64, w64, float(k_r), float(soft_core_radius), float(theta))

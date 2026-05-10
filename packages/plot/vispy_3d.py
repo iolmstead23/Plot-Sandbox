@@ -21,7 +21,22 @@ vispy.use("pyqt6")
 from vispy import scene
 from vispy.scene.visuals import Line, Markers  # type: ignore[attr-defined]
 
-import packages.theme as theme
+# ---------------------------------------------------------------------------
+# Visual constants (owned by this module — no cross-package theme import)
+# ---------------------------------------------------------------------------
+
+_BG             = "#1e1e2e"
+_EDGE_COLOR     = (0.7, 0.7, 0.7, 0.45)
+_EDGE_WIDTH     = 1.0
+_AXIS_X_COLOR   = (0.85, 0.15, 0.15, 0.75)
+_AXIS_Y_COLOR   = (0.15, 0.70, 0.15, 0.75)
+_AXIS_Z_COLOR   = (0.15, 0.15, 0.85, 0.75)
+_AXIS_WIDTH     = 2.0
+_NODE_HUE_STEP  = 0.38196601125
+_NODE_SATURATION = 0.80
+_NODE_VALUE     = 0.88
+_NODE_SIZE_MIN  = 2.0
+_NODE_SIZE_MAX  = 20.0
 
 # ---------------------------------------------------------------------------
 # Color generation
@@ -41,11 +56,11 @@ def _generate_node_colors(n: int) -> np.ndarray:
         return np.zeros((0, 4), dtype=np.float32)
 
     # Golden angle in [0, 1] hue space — maximally spreads N hues.
-    hues = (np.arange(n, dtype=np.float32) * theme.NODE_HUE_STEP) % 1.0
+    hues = (np.arange(n, dtype=np.float32) * _NODE_HUE_STEP) % 1.0
 
     # Vectorised HSV → RGB (s=0.80, v=0.88 fixed).
-    s = theme.NODE_SATURATION
-    v = theme.NODE_VALUE
+    s = _NODE_SATURATION
+    v = _NODE_VALUE
     h6 = hues * 6.0
     i = np.floor(h6).astype(np.int32) % 6
     f = (h6 - np.floor(h6)).astype(np.float32)
@@ -105,12 +120,12 @@ def _axis_visual(focus: tuple[float, float, float], length: float) -> Line:
     )
     clrs = np.array(
         [
-            theme.AXIS_X_COLOR,
-            theme.AXIS_X_COLOR,
-            theme.AXIS_Y_COLOR,
-            theme.AXIS_Y_COLOR,
-            theme.AXIS_Z_COLOR,
-            theme.AXIS_Z_COLOR,
+            _AXIS_X_COLOR,
+            _AXIS_X_COLOR,
+            _AXIS_Y_COLOR,
+            _AXIS_Y_COLOR,
+            _AXIS_Z_COLOR,
+            _AXIS_Z_COLOR,
         ],
         dtype=np.float32,
     )
@@ -118,7 +133,7 @@ def _axis_visual(focus: tuple[float, float, float], length: float) -> Line:
         pos=pts,
         color=clrs,
         connect="segments",
-        width=int(theme.AXIS_WIDTH),
+        width=int(_AXIS_WIDTH),
         antialias=False,
     )
 
@@ -136,9 +151,9 @@ def build_vispy_scene(
     *,
     title: str = "3D Plot",
     focus: tuple = (0.0, 0.0, 0.0),
-    bg_color: str = theme.BG,
-    edge_color: tuple = theme.EDGE_COLOR,
-    edge_width: float = theme.EDGE_WIDTH,
+    bg_color: str = _BG,
+    edge_color: tuple = _EDGE_COLOR,
+    edge_width: float = _EDGE_WIDTH,
     size_scale: float = 1.0,
     axis_length: float = 5.0,
     elev: float = 25.0,
@@ -166,7 +181,7 @@ def build_vispy_scene(
     node_colors = _generate_node_colors(n)
     pos_f32 = positions.astype(np.float32) if n > 0 else np.zeros((1, 3), np.float32)
     sz_f32 = (
-        np.clip(sizes * size_scale, theme.NODE_SIZE_MIN, theme.NODE_SIZE_MAX).astype(
+        np.clip(sizes * size_scale, _NODE_SIZE_MIN, _NODE_SIZE_MAX).astype(
             np.float32
         )
         if n > 0
@@ -225,7 +240,7 @@ def update_vispy_scene(
 
     pos_f32 = positions.astype(np.float32)
     sz_f32 = np.clip(
-        sizes * size_scale, theme.NODE_SIZE_MIN, theme.NODE_SIZE_MAX
+        sizes * size_scale, _NODE_SIZE_MIN, _NODE_SIZE_MAX
     ).astype(np.float32)
 
     so.markers.set_data(

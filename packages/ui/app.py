@@ -20,7 +20,7 @@ Threading model
 from __future__ import annotations
 
 import sys
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QCloseEvent, QFont
@@ -38,8 +38,21 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from packages.plot.vispy_3d import SceneObjects
-import packages.theme as theme
+if TYPE_CHECKING:
+    from packages.plot.vispy_3d import SceneObjects
+
+# ── Visual constants (no cross-package import; values mirror packages/theme) ──
+_BG           = "#1e1e2e"
+_TEXT         = "#cdd6f4"
+_BORDER       = "#45475a"
+_BUTTON_BG    = "#313244"
+_BUTTON_HOVER = "#45475a"
+_BANNER_FONT       = "Courier"
+_BANNER_FONT_SIZE  = 9
+_BANNER_HEIGHT     = 22
+_BANNER_PADDING    = "2px 6px"
+_SIDEBAR_WIDTH = 160
+_BUTTON_WIDTH  = 130
 
 ButtonHandler = Callable[["App"], None]
 ButtonSpec = tuple[str, ButtonHandler]
@@ -126,33 +139,33 @@ class App(QMainWindow):
         )
         sidebar.setObjectName("sidebar_container")
         sidebar.setStyleSheet(f"""
-            QWidget#sidebar_container {{ background-color: {theme.BG}; }}
+            QWidget#sidebar_container {{ background-color: {_BG}; }}
             QWidget#sidebar_container QPushButton {{
-                background-color: {theme.BUTTON_BG};
-                color: {theme.TEXT};
-                border: 1px solid {theme.BORDER};
+                background-color: {_BUTTON_BG};
+                color: {_TEXT};
+                border: 1px solid {_BORDER};
                 padding: 4px 8px;
                 border-radius: 3px;
             }}
             QWidget#sidebar_container QPushButton:hover {{
-                background-color: {theme.BUTTON_HOVER};
+                background-color: {_BUTTON_HOVER};
             }}
             QWidget#sidebar_container QLabel {{
                 background-color: transparent;
-                color: {theme.TEXT};
+                color: {_TEXT};
             }}
             QWidget#sidebar_container QFrame {{
-                background-color: {theme.BUTTON_BG};
-                border: 1px solid {theme.BORDER};
+                background-color: {_BUTTON_BG};
+                border: 1px solid {_BORDER};
                 border-radius: 3px;
             }}
             QWidget#sidebar_container QSlider::groove:horizontal {{
-                background: {theme.BORDER};
+                background: {_BORDER};
                 height: 4px;
                 border-radius: 2px;
             }}
             QWidget#sidebar_container QSlider::handle:horizontal {{
-                background: {theme.TEXT};
+                background: {_TEXT};
                 width: 12px;
                 height: 12px;
                 border-radius: 6px;
@@ -174,13 +187,13 @@ class App(QMainWindow):
         # ── banner — explicit colours so it reads on any Windows theme ───────
         self._banner = QLabel(self._format_banner(sample_size))
         self._banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._banner.setFont(QFont(theme.BANNER_FONT, theme.BANNER_FONT_SIZE))
-        self._banner.setFixedHeight(theme.BANNER_HEIGHT)
+        self._banner.setFont(QFont(_BANNER_FONT, _BANNER_FONT_SIZE))
+        self._banner.setFixedHeight(_BANNER_HEIGHT)
         self._banner.setStyleSheet(
-            f"background-color:{theme.BG};"
-            f"color:{theme.TEXT};"
-            f"padding:{theme.BANNER_PADDING};"
-            f"border-top:1px solid {theme.BORDER};"
+            f"background-color:{_BG};"
+            f"color:{_TEXT};"
+            f"padding:{_BANNER_PADDING};"
+            f"border-top:1px solid {_BORDER};"
             "font-weight:bold;"
         )
         root_layout.addWidget(self._banner)
@@ -195,14 +208,14 @@ class App(QMainWindow):
         pady: int,
     ) -> QWidget:
         sidebar = QWidget()
-        sidebar.setFixedWidth(theme.SIDEBAR_WIDTH)
+        sidebar.setFixedWidth(_SIDEBAR_WIDTH)
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(padx, pady, padx, pady)
         layout.setSpacing(pady)
 
         for label, handler in buttons:
             btn = QPushButton(label)
-            btn.setFixedWidth(theme.BUTTON_WIDTH)
+            btn.setFixedWidth(_BUTTON_WIDTH)
             btn.clicked.connect(lambda _checked, h=handler: h(self))
             layout.addWidget(btn)
 

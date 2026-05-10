@@ -325,18 +325,6 @@ def _dict_to_config(d: dict) -> Config:
     )
 
 
-def _config_to_dict(cfg: Config) -> dict:
-    return {
-        "physics": asdict(cfg.physics),
-        "simulation": asdict(cfg.simulation),
-        "tick": asdict(cfg.tick),
-        "view": asdict(cfg.view),
-        "plot": asdict(cfg.plot),
-        "dom": asdict(cfg.dom),
-        "ui": asdict(cfg.ui),
-    }
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------

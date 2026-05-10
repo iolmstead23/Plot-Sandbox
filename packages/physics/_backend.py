@@ -79,7 +79,9 @@ def get_module(arr=None):
     """
     if _cupy is not None and arr is not None:
         return _cupy.get_array_module(arr)
-    return _cupy if _gpu_enabled else _np
+    if _gpu_enabled and _cupy is not None:
+        return _cupy
+    return _np
 
 
 def to_device(arr: _np.ndarray):
