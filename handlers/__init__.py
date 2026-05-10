@@ -1,14 +1,6 @@
-"""Button handlers + tick orchestrator — the only layer that bridges packages.
-
-Each button handler has signature `(app) -> None`. The Tk button calls
-`handler(app_instance)` on click. Handlers either mutate DOM directly
-(synchronous, instant) or enqueue mutations (drained between physics steps).
-"""
-
-from .add_random_node import add_random_node
-from .remove_random_node import remove_random_node
-from .reseed import reseed, seed_physics_dom
-from .sliders import make_force_slider_callback
+from .dom import add_random_node, remove_random_node, seed_physics_dom
+from .reseed import reseed
+from .state import make_force_slider_callback
 from .tick import physics_tick
 
 

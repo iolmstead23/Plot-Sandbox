@@ -1,5 +1,3 @@
-"""Enqueue a remove_node mutation for a random existing node."""
-
 import numpy as np
 
 from packages.dom import dom

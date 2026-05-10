@@ -1,5 +1,3 @@
-"""Enqueue an add_node mutation for a random new node."""
-
 import numpy as np
 
 from packages.config import config
