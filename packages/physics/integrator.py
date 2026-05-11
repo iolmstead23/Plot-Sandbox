@@ -13,12 +13,10 @@ them to GPU before calling relax_step and downloading the result back.
 import numpy as np
 
 from ._backend import get_module
-from .forces import (
-    central_gravity,
-    edge_attraction,
-    pairwise_attraction,
-    pairwise_repulsion,
-)
+from ._force_attraction import pairwise_attraction
+from ._force_edge import edge_attraction
+from ._force_gravity import central_gravity
+from ._force_repulsion import pairwise_repulsion
 
 
 def relax_step(

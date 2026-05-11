@@ -1,9 +1,8 @@
-"""Memoized DOM — single source of truth for node data.
+"""DOM — single source of truth for node data.
 
 NumPy arrays are the source of truth. The integrator writes via the underscore-prefixed
 bulk API (`_set_positions`); all other mutation flows through the public
-methods. Each mutator bumps `_revision`, which is used to invalidate the
-`pairs_within_radius` cache and (optionally) notify the `on_change` seam.
+methods. Each mutator bumps `_revision` and (optionally) notifies the `on_change` seam.
 """
 
 from typing import Callable, Optional
@@ -27,18 +26,11 @@ class DOM:
         self._index_to_id: list[int] = []
         self._next_id: int = 0
         self._revision: int = 0
-        # Bumps only when positions/topology change; weight/size mutations
-        # leave it untouched so the pairs cache survives them.
-        self._position_revision: int = 0
 
         # Single optional seam (no list, no pub/sub framework). Wired by
         # handlers.tick to reheat the integrator on user/structural
         # mutations. Integrator-driven position writes pass notify=False.
         self.on_change: Optional[Callable[["DOM"], None]] = None
-
-        # (position_revision, radius, pairs) — keyed on position revision so
-        # weight/size changes don't invalidate it.
-        self._pairs_cache: Optional[tuple[int, float, np.ndarray]] = None
 
     @property
     def n(self) -> int:
@@ -52,10 +44,8 @@ class DOM:
     def revision(self) -> int:
         return self._revision
 
-    def _bump(self, *, positions_changed: bool, notify: bool = True) -> None:
+    def _bump(self, *, notify: bool = True) -> None:
         self._revision += 1
-        if positions_changed:
-            self._position_revision += 1
         if notify and self.on_change is not None:
             self.on_change(self)
 
@@ -81,7 +71,7 @@ class DOM:
         self._id_to_index[node_id] = idx
         self._index_to_id.append(node_id)
 
-        self._bump(positions_changed=True)
+        self._bump()
         return node_id
 
     def remove_node(self, node_id: int) -> None:
@@ -116,11 +106,11 @@ class DOM:
         self.labels.pop()
         self._index_to_id.pop()
 
-        self._bump(positions_changed=True)
+        self._bump()
 
     def set_weight(self, node_id: int, weight: float) -> None:
         self.weights[self._id_to_index[node_id]] = weight
-        self._bump(positions_changed=False)
+        self._bump()
 
     def clear(self) -> None:
         """Reset all node data and the ID counter to initial state."""
@@ -133,8 +123,6 @@ class DOM:
         self._index_to_id = []
         self._next_id = 0
         self._revision += 1
-        self._position_revision += 1
-        self._pairs_cache = None
 
     def add_edge(self, i: int, j: int) -> None:
         if i == j:
@@ -146,33 +134,13 @@ class DOM:
                 return
         new_row = np.array([[a, b]], dtype=np.int64)
         self.edges = np.concatenate([self.edges, new_row], axis=0)
-        self._bump(positions_changed=False)
+        self._bump()
 
     def _set_positions(self, positions: np.ndarray) -> None:
-        # Bulk write from the integrator. Bumps position revision so the
-        # pairs cache invalidates, but suppresses on_change — the cascade
+        # Bulk write from the integrator. Suppresses on_change — the cascade
         # is for user/structural mutations, not the per-tick relax step.
         self.positions = positions
-        self._bump(positions_changed=True, notify=False)
-
-    # --- Derived queries -------------------------------------------------
-    def pairs_within_radius(self, radius: float) -> np.ndarray:
-        if self._pairs_cache is not None:
-            cached_rev, cached_r, cached_pairs = self._pairs_cache
-            if cached_rev == self._position_revision and cached_r == radius:
-                return cached_pairs
-
-        if self.n < 2:
-            pairs = np.zeros((0, 2), dtype=np.int64)
-        else:
-            diff = self.positions[:, None, :] - self.positions[None, :, :]
-            dist = np.linalg.norm(diff, axis=-1)
-            i_idx, j_idx = np.triu_indices(self.n, k=1)
-            mask = dist[i_idx, j_idx] <= radius
-            pairs = np.stack([i_idx[mask], j_idx[mask]], axis=1).astype(np.int64)
-
-        self._pairs_cache = (self._position_revision, radius, pairs)
-        return pairs
+        self._bump(notify=False)
 
     # --- Lookup ----------------------------------------------------------
     def ids(self) -> list[int]:

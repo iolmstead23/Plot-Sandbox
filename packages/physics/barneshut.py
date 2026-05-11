@@ -15,6 +15,11 @@ With Numba `prange`, force computation parallelises across all CPU cores.
 
 from __future__ import annotations
 
+# REFACTOR EXEMPTION: This file intentionally exceeds 200 lines.
+# All @nb.njit functions must reside in one compilation unit for Numba
+# JIT cache coherence. The prange-parallel force kernel references sibling
+# JIT functions; splitting them would break cache=True. Do NOT split this file.
+
 import numpy as np
 
 BH_THRESHOLD: int = 5000   # activate when N >= this on CPU path
@@ -58,6 +63,7 @@ def repulsion(
         raise ValueError(f"Barnes-Hut requires D=3, got D={positions.shape[1]}")
 
     _ensure_compiled()
+    assert _jit_fn is not None
     pos64 = np.ascontiguousarray(positions, dtype=np.float64)
     w64   = np.ascontiguousarray(weights,   dtype=np.float64)
     forces = _jit_fn(pos64, w64, float(k_r), float(soft_core_radius), float(theta))

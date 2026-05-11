@@ -5,7 +5,7 @@ import numpy as np
 from packages.config import config
 from packages.dom import dom
 from packages.physics import relax_step
-from packages.physics._backend import is_gpu, to_device, to_numpy
+from packages.physics import is_gpu, to_device, to_numpy
 from packages.plot import project_to_3d, update_vispy_scene
 
 from ..dom import mutate
@@ -18,11 +18,10 @@ _last_tick_time: float = 0.0
 _fps: float = 0.0
 _tick_ms: float = 0.0
 _render_counter: int = 0
-_last_render_structure: tuple = (-1, -1)
 
 
 def physics_tick(app) -> None:
-    global _last_tick_time, _fps, _tick_ms, _render_counter, _last_render_structure
+    global _last_tick_time, _fps, _tick_ms, _render_counter
 
     tick_start = time.perf_counter()
     app_state.app = app
@@ -43,22 +42,15 @@ def physics_tick(app) -> None:
         render_every = max(1, config.tick.render_every)
         if app.artists is not None and (_render_counter % render_every == 0):
             with thread.positions_lock:
-                pos_snap    = project_to_3d(dom.positions)
-                sizes_snap  = dom.sizes.copy()
-                edges_snap  = dom.edges.copy()
-                n_snap      = dom.n
-                labels_snap = list(dom.labels)
-
-            current_structure = (n_snap, edges_snap.shape[0])
-            structure_changed = current_structure != _last_render_structure
-            _last_render_structure = current_structure
+                pos_snap   = project_to_3d(dom.positions)
+                sizes_snap = dom.sizes.copy()
+                edges_snap = dom.edges.copy()
 
             update_vispy_scene(
                 app.artists,
                 pos_snap,
                 sizes_snap,
                 edges_snap,
-                labels=labels_snap if structure_changed else None,
                 size_scale=config.plot.size_scale,
             )
             app.canvas.update()
@@ -96,16 +88,11 @@ def physics_tick(app) -> None:
         _render_counter += 1
         render_every = max(1, config.tick.render_every)
         if app.artists is not None and (_render_counter % render_every == 0):
-            current_structure = (dom.n, dom.edges.shape[0])
-            structure_changed = current_structure != _last_render_structure
-            _last_render_structure = current_structure
-
             update_vispy_scene(
                 app.artists,
                 project_to_3d(dom.positions),
                 dom.sizes,
                 dom.edges,
-                labels=list(dom.labels) if structure_changed else None,
                 size_scale=config.plot.size_scale,
             )
             app.canvas.update()

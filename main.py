@@ -15,6 +15,7 @@ from handlers import (
     BUTTON_HANDLERS,
     make_force_slider_callback,
     physics_tick,
+    reseed_handler,
     seed_physics_dom,
 )
 
@@ -57,7 +58,7 @@ def main() -> None:
             0.0,
             10.0,
             0.1,
-            make_force_slider_callback("k_central"),
+            make_force_slider_callback("k_central", reseed_fn=reseed_handler),
         ),
         (
             "k_repel",
@@ -65,7 +66,7 @@ def main() -> None:
             0.0,
             50.0,
             0.5,
-            make_force_slider_callback("k_repel"),
+            make_force_slider_callback("k_repel", reseed_fn=reseed_handler),
         ),
         (
             "k_edge",
@@ -73,7 +74,7 @@ def main() -> None:
             0.0,
             1.0,
             0.01,
-            make_force_slider_callback("k_edge"),
+            make_force_slider_callback("k_edge", reseed_fn=reseed_handler),
         ),
     ]
 
@@ -82,13 +83,11 @@ def main() -> None:
         buttons=BUTTON_HANDLERS,
         sample_size=dom.n,
         sliders=sliders,
-        artists=scene_objects,
         on_ready=lambda app: app.start_tick(
             physics_tick, interval_ms=config.tick.interval_ms
         ),
         window_title=config.ui.window_title,
         geometry=config.ui.geometry,
-        button_width=config.ui.button_width,
         button_padx=config.ui.button_padx,
         button_pady=config.ui.button_pady,
     )

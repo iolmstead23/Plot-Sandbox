@@ -28,4 +28,4 @@ def recompute_weights_from_degree() -> None:
             dom.n, (sim.weight_min + sim.weight_max) / 2.0, dtype=np.float64
         )
     dom.weights[:] = weights
-    dom._bump(positions_changed=False)
+    dom._bump()
