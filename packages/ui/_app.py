@@ -1,31 +1,10 @@
-"""Qt + VisPy application window.
-
-Preserves the same public API as the old Tkinter version so all handlers
-work without changes:
-
-  App(scene_objects, buttons, *, sliders, window_title, geometry, ...)
-  app.artists          — SceneObjects bundle
-  app.canvas           — CanvasWrapper with .update()
-  app.is_ticking       — bool
-  app.start_tick(cb, interval_ms)
-  app.stop_tick()
-  app.update_banner(n, temperature, fps, tick_ms, accel)
-
-Threading model
----------------
-  Main thread (Qt event loop)  — renders at 60 FPS via QTimer
-  Background thread (thread.py) — GPU physics runs continuously
-"""
-
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING, Callable, Optional
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QCloseEvent, QFont
 from PyQt6.QtWidgets import (
-    QApplication,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -35,12 +14,20 @@ from PyQt6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from packages.plot.vispy_3d import SceneObjects
+    from packages.plot import SceneObjects
 
-from .theme import _BG, _BANNER_FONT, _BANNER_FONT_SIZE, _BANNER_HEIGHT, _BANNER_PADDING, _BORDER, _TEXT
 from ._canvas import _CanvasWrapper
 from ._sidebar import build_sidebar
 from ._types import ButtonSpec, SliderSpec
+from .theme import (
+    _BANNER_FONT,
+    _BANNER_FONT_SIZE,
+    _BANNER_HEIGHT,
+    _BANNER_PADDING,
+    _BG,
+    _BORDER,
+    _TEXT,
+)
 
 
 class App(QMainWindow):
@@ -52,7 +39,7 @@ class App(QMainWindow):
         sample_size: int = 0,
         sliders: Optional[list[SliderSpec]] = None,
         window_title: str = "3D Plot",
-        geometry: str = "900x640",
+        geometry: str = "900x600",
         button_padx: int = 8,
         button_pady: int = 6,
     ) -> None:
@@ -62,13 +49,13 @@ class App(QMainWindow):
         try:
             w, h = (int(v) for v in geometry.split("x"))
         except ValueError:
-            w, h = 900, 640
+            w, h = 900, 600
         self.resize(w, h)
 
         self._scene: SceneObjects = scene_objects
         self._canvas_wrapper = _CanvasWrapper(scene_objects.canvas)
 
-        self._tick_callback: Optional[Callable[["App"], None]] = None
+        self._tick_callback: Optional[Callable[[App], None]] = None
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._on_tick)
 
@@ -121,7 +108,7 @@ class App(QMainWindow):
 
     def start_tick(
         self,
-        callback: Callable[["App"], None],
+        callback: Callable[[App], None],
         *,
         interval_ms: int = 16,
     ) -> None:
@@ -171,33 +158,3 @@ class App(QMainWindow):
         self.stop_tick()
         if a0 is not None:
             a0.accept()
-
-
-def launch(
-    scene_objects: SceneObjects,
-    buttons: Optional[list[ButtonSpec]] = None,
-    *,
-    sample_size: int = 0,
-    sliders: Optional[list[SliderSpec]] = None,
-    on_ready: Optional[Callable[[App], None]] = None,
-    window_title: str = "3D Plot",
-    geometry: str = "900x640",
-    button_padx: int = 8,
-    button_pady: int = 6,
-) -> None:
-    qt_app = QApplication.instance() or QApplication(sys.argv)
-
-    app = App(
-        scene_objects,
-        buttons=buttons,
-        sample_size=sample_size,
-        sliders=sliders,
-        window_title=window_title,
-        geometry=geometry,
-        button_padx=button_padx,
-        button_pady=button_pady,
-    )
-    if on_ready is not None:
-        on_ready(app)
-    app.show()
-    qt_app.exec()

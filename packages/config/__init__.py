@@ -5,30 +5,10 @@ Loads config.json from the project root on first import and exposes a typed
 No sibling packages are imported here.
 """
 
-from ._models import (
-    Config,
-    DomConfig,
-    PhysicsConfig,
-    PlotConfig,
-    SimulationConfig,
-    TickConfig,
-    UiConfig,
-    ViewConfig,
-)
 from ._loader import load_config
+from ._model_root import Config
 
-__all__ = [
-    "Config",
-    "DomConfig",
-    "PhysicsConfig",
-    "PlotConfig",
-    "SimulationConfig",
-    "TickConfig",
-    "UiConfig",
-    "ViewConfig",
-    "config",
-    "load_config",
-]
+__all__ = ["config", "load_config"]
 
 # Module-level singleton — loaded once at import time.
 config: Config = load_config()

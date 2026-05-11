@@ -3,17 +3,16 @@
 import json
 import os
 
-from ._defaults import _DEFAULT_CONFIG, _SCHEMA
-from ._models import (
-    Config,
-    DomConfig,
-    PhysicsConfig,
-    PlotConfig,
-    SimulationConfig,
-    TickConfig,
-    UiConfig,
-    ViewConfig,
-)
+from ._defaults import _DEFAULT_CONFIG
+from ._schema import _SCHEMA
+from ._model_dom import DomConfig
+from ._model_physics import PhysicsConfig
+from ._model_plot import PlotConfig
+from ._model_root import Config
+from ._model_simulation import SimulationConfig
+from ._model_tick import TickConfig
+from ._model_ui import UiConfig
+from ._model_view import ViewConfig
 
 
 def _type_name(t) -> str:
