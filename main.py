@@ -83,7 +83,6 @@ def main() -> None:
         buttons=BUTTON_HANDLERS,
         sample_size=dom.n,
         sliders=sliders,
-
         on_ready=lambda app: app.start_tick(
             physics_tick, interval_ms=config.tick.interval_ms
         ),

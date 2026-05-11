@@ -41,7 +41,7 @@ def setup(use_gpu: bool) -> bool:
         return False
     try:
         _cupy.cuda.Device(0).use()
-        _cupy.zeros(1)  # force CUDA context initialisation
+        _cupy.zeros(1)  # force CUDA context initialization
         props = _cupy.cuda.runtime.getDeviceProperties(0)
         name = props.get("name", b"unknown")
         if isinstance(name, bytes):

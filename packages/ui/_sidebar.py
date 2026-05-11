@@ -27,7 +27,7 @@ from .theme import (
 )
 
 if TYPE_CHECKING:
-    from .app import App
+    from ._app import App
     from ._types import ButtonSpec, SliderSpec
 
 
