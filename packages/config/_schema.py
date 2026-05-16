@@ -1,8 +1,8 @@
 # Maps each key to its expected Python type(s). Lists validated separately.
 _SCHEMA: dict = {
     "physics": {
-        "k_central": (int, float),
-        "k_repel": (int, float),
+        "gravity_ratio": (int, float),
+        "repel_ratio": (int, float),
         "k_attract": (int, float),
         "soft_core_radius": (int, float),
         "max_step": (int, float),
@@ -14,6 +14,8 @@ _SCHEMA: dict = {
         "k_edge": (int, float),
         "edge_rest_length": (int, float),
         "repulsion_cutoff": (int, float),
+        "bh_threshold": int,
+        "bh_theta": (int, float),
     },
     "simulation": {
         "node_count": int,
@@ -25,6 +27,7 @@ _SCHEMA: dict = {
         "dims": int,
         "max_degree": int,
         "use_gpu": bool,
+        "layout_noise": (int, float),
     },
     "tick": {
         "dt": (int, float),
@@ -32,15 +35,19 @@ _SCHEMA: dict = {
         "interval_ms": int,
         "render_every": int,
         "physics_substeps": int,
+        "cuda_device": int,
     },
     "view": {
         "elev": (int, float),
         "azim": (int, float),
         "view_range": (int, float),
+        "camera_distance": (int, float),
     },
     "plot": {
         "title": str,
         "size_scale": (int, float),
+        "node_size_min": (int, float),
+        "node_size_max": (int, float),
     },
     "dom": {
         "weight_to_size": (int, float),
@@ -50,5 +57,13 @@ _SCHEMA: dict = {
         "geometry": str,
         "button_padx": int,
         "button_pady": int,
+    },
+    "velocimetry": {
+        "enabled": bool,
+        "output_path": str,
+        "save_csv": bool,
+        "save_npz": bool,
+        "plot_on_convergence": bool,
+        "max_frames": int,
     },
 }

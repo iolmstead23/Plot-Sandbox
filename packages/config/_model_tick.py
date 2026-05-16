@@ -8,3 +8,4 @@ class TickConfig:
     interval_ms: int
     render_every: int = 1
     physics_substeps: int = 8
+    cuda_device: int = 0

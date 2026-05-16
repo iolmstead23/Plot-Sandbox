@@ -2,8 +2,8 @@
 
 _DEFAULT_CONFIG: dict = {
     "physics": {
-        "k_central": 2.0,
-        "k_repel": 10.0,
+        "gravity_ratio": 0.004,
+        "repel_ratio": 0.02,
         "k_attract": 0.8,
         "soft_core_radius": 0.6,
         "max_step": 0.4,
@@ -15,6 +15,8 @@ _DEFAULT_CONFIG: dict = {
         "k_edge": 0.08,
         "edge_rest_length": 5.0,
         "repulsion_cutoff": 6.0,
+        "bh_threshold": 5000,
+        "bh_theta": 0.7,
     },
     "simulation": {
         "node_count": 30,
@@ -26,6 +28,7 @@ _DEFAULT_CONFIG: dict = {
         "dims": 3,
         "max_degree": 6,
         "use_gpu": True,
+        "layout_noise": 1.0,
     },
     "tick": {
         "dt": 0.05,
@@ -33,15 +36,19 @@ _DEFAULT_CONFIG: dict = {
         "interval_ms": 33,
         "render_every": 1,
         "physics_substeps": 8,
+        "cuda_device": 0,
     },
     "view": {
         "elev": 25.0,
         "azim": -60.0,
         "view_range": 10.0,
+        "camera_distance": 30.0,
     },
     "plot": {
         "title": "Knowledge Graph Simulation",
         "size_scale": 1.0,
+        "node_size_min": 2.0,
+        "node_size_max": 20.0,
     },
     "dom": {
         "weight_to_size": 40.0,
@@ -51,5 +58,13 @@ _DEFAULT_CONFIG: dict = {
         "geometry": "900x600",
         "button_padx": 8,
         "button_pady": 6,
+    },
+    "velocimetry": {
+        "enabled": True,
+        "output_path": "velocimetry_output",
+        "save_csv": False,
+        "save_npz": True,
+        "plot_on_convergence": True,
+        "max_frames": 20000,
     },
 }

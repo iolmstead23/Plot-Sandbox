@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -58,6 +59,7 @@ class App(QMainWindow):
         self._tick_callback: Optional[Callable[[App], None]] = None
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._on_tick)
+        self._gated_buttons: list[QPushButton] = []
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -70,7 +72,8 @@ class App(QMainWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        sidebar = build_sidebar(self, buttons or [], sliders or [], button_padx, button_pady)
+        sidebar, gated = build_sidebar(self, buttons or [], sliders or [], button_padx, button_pady)
+        self._gated_buttons = gated
         content_layout.addWidget(sidebar)
 
         canvas_widget = scene_objects.canvas.native
@@ -153,6 +156,11 @@ class App(QMainWindow):
         accel: str = "",
     ) -> None:
         self._banner.setText(self._format_banner(n, temperature, fps, tick_ms, accel))
+
+    def set_converged(self, converged: bool) -> None:
+        """Enable or disable convergence-gated buttons (Add Node, Remove)."""
+        for btn in self._gated_buttons:
+            btn.setEnabled(converged)
 
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         self.stop_tick()

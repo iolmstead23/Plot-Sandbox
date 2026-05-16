@@ -49,24 +49,27 @@ def main() -> None:
         azim=config.view.azim,
         axis_length=config.view.view_range * 0.4,
         size_scale=config.plot.size_scale,
+        camera_distance=config.view.camera_distance,
+        node_size_min=config.plot.node_size_min,
+        node_size_max=config.plot.node_size_max,
     )
 
     sliders = [
         (
-            "k_central",
-            config.physics.k_central,
+            "gravity_ratio",
+            config.physics.gravity_ratio,
             0.0,
-            10.0,
-            0.1,
-            make_force_slider_callback("k_central", reseed_fn=reseed_handler),
+            0.01,
+            0.0001,
+            make_force_slider_callback("gravity_ratio", reseed_fn=reseed_handler),
         ),
         (
-            "k_repel",
-            config.physics.k_repel,
+            "repel_ratio",
+            config.physics.repel_ratio,
             0.0,
-            50.0,
-            0.5,
-            make_force_slider_callback("k_repel", reseed_fn=reseed_handler),
+            0.05,
+            0.0005,
+            make_force_slider_callback("repel_ratio", reseed_fn=reseed_handler),
         ),
         (
             "k_edge",

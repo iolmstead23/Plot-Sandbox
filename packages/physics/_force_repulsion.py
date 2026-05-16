@@ -12,6 +12,8 @@ def pairwise_repulsion(
     k_r: float,
     soft_core_radius: float,
     cutoff: float = 0.0,
+    bh_threshold: int = 5000,
+    bh_theta: float = 0.7,
 ) -> np.ndarray:
     xp = get_module(positions)
     n = positions.shape[0]
@@ -26,11 +28,11 @@ def pairwise_repulsion(
         )
 
     # CPU Barnes-Hut path: O(N log N) for large N on multi-core CPU.
-    from .barneshut import BH_THRESHOLD, available as _bh_available, repulsion as _bh_repulsion
-    if n >= BH_THRESHOLD and _bh_available() and positions.shape[1] == 3:
+    from .barneshut import available as _bh_available, repulsion as _bh_repulsion
+    if n >= bh_threshold and _bh_available() and positions.shape[1] == 3:
         return _bh_repulsion(
             positions, weights, k_r=k_r,
-            soft_core_radius=soft_core_radius,
+            soft_core_radius=soft_core_radius, theta=bh_theta,
         )
 
     # CPU sparse path: skip pairs beyond cutoff using scipy.spatial.cKDTree.

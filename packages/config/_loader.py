@@ -1,5 +1,6 @@
 """Config file loading, validation, and construction."""
 
+import dataclasses
 import json
 import os
 
@@ -12,6 +13,7 @@ from ._model_root import Config
 from ._model_simulation import SimulationConfig
 from ._model_tick import TickConfig
 from ._model_ui import UiConfig
+from ._model_velocimetry import VelocimetryConfig
 from ._model_view import ViewConfig
 
 
@@ -65,6 +67,7 @@ def _dict_to_config(d: dict) -> Config:
         plot=PlotConfig(**d["plot"]),
         dom=DomConfig(**d["dom"]),
         ui=UiConfig(**d["ui"]),
+        velocimetry=VelocimetryConfig(**d["velocimetry"]),
     )
 
 
@@ -86,3 +89,9 @@ def load_config(path: str = "config.json") -> Config:
 
     _validate(data)
     return _dict_to_config(data)
+
+
+def save_config(cfg: Config, path: str = "config.json") -> None:
+    """Persist the in-memory config back to *path* as formatted JSON."""
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(dataclasses.asdict(cfg), fh, indent=2)

@@ -7,11 +7,13 @@ from packages.dom import dom
 from packages.plot import project_to_3d, update_vispy_scene
 
 from .dom import seed_physics_dom
+from .state import temperature
 
 
 def reseed(app, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
     app.stop_tick()
     stop_fn()
+    temperature.reset()  # full reset — _on_dom_change only does warm partial reheat
     seed_physics_dom(np.random.default_rng())
 
     # Update the existing VisPy visuals in-place — no canvas rebuild needed.
@@ -22,8 +24,11 @@ def reseed(app, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
             dom.sizes,
             dom.edges,
             size_scale=config.plot.size_scale,
+            node_size_min=config.plot.node_size_min,
+            node_size_max=config.plot.node_size_max,
         )
         app.canvas.update()
 
+    app.set_converged(False)
     app.update_banner(dom.n)
     start_fn(app)

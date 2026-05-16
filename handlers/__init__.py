@@ -17,8 +17,8 @@ def reseed_handler(app) -> None:
 
 BUTTON_HANDLERS = [
     ("New Sim",   reseed_handler),
-    ("Add Node",  add_random_node),
-    ("Remove",    remove_random_node),
+    ("Add Node",  add_random_node,    True),  # gated: disabled until converged
+    ("Remove",    remove_random_node, True),  # gated: disabled until converged
 ]
 
 __all__ = [

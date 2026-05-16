@@ -18,6 +18,7 @@ reheat()  called on any structural DOM change to clear the converged flag
 
 import threading
 import time
+from typing import Any
 
 import numpy as np
 
@@ -36,6 +37,16 @@ _thread: threading.Thread | None = None
 _stop_event = threading.Event()
 _converged = threading.Event()
 _steps_per_sec: float = 0.0
+_current_temperature: float = 1.0
+_physics_stream = None  # cp.cuda.Stream, created in start()
+
+# Persistent GPU arrays — survive across batches when DOM structure is stable.
+# None until first loop iteration; freed in stop().
+_pos_gpu: Any = None   # cp.ndarray (N, 3) float32
+_w_gpu:   Any = None   # cp.ndarray (N,)   float32
+_pin_gpu: Any = None   # cp.ndarray (N,)   uint8
+_e_gpu:   Any = None   # cp.ndarray (E, 2) int32
+_gpu_n: int = 0        # node count at last upload; 0 forces re-upload on first batch
 
 
 # ---------------------------------------------------------------------------
@@ -54,20 +65,35 @@ def steps_per_sec() -> float:
     return _steps_per_sec
 
 
+def get_temperature() -> float:
+    return _current_temperature
+
+
 def start() -> None:
-    global _thread
+    global _thread, _physics_stream, _gpu_n
     if is_running():
         return
+    _gpu_n = 0  # force full re-upload on first loop iteration
     _stop_event.clear()
     _converged.clear()
+    try:
+        import cupy as cp
+        cp.cuda.Device(config.tick.cuda_device).use()
+        _physics_stream = cp.cuda.Stream(non_blocking=True)
+    except Exception:
+        _physics_stream = None
     _thread = threading.Thread(target=_loop, daemon=True, name="gpu-physics")
     _thread.start()
 
 
 def stop() -> None:
+    global _pos_gpu, _w_gpu, _pin_gpu, _e_gpu, _gpu_n
     _stop_event.set()
     if _thread is not None:
         _thread.join(timeout=1.0)
+    # Release VRAM; _gpu_n=0 ensures re-upload on next start().
+    _pos_gpu = _w_gpu = _pin_gpu = _e_gpu = None
+    _gpu_n = 0
 
 
 def reheat() -> None:
@@ -79,10 +105,25 @@ def reheat() -> None:
 # Worker
 # ---------------------------------------------------------------------------
 
+class _NullCtx:
+    """No-op context manager used when no CUDA stream is available."""
+    def __enter__(self): return self
+    def __exit__(self, *_): pass
+
+
 def _loop() -> None:
-    global _steps_per_sec
+    global _steps_per_sec, _current_temperature
+    global _pos_gpu, _w_gpu, _pin_gpu, _e_gpu, _gpu_n
+
     steps = 0
     t0 = time.perf_counter()
+    _current_temperature = temperature.get()
+
+    try:
+        import cupy as cp
+        cp.cuda.Device(config.tick.cuda_device).use()
+    except Exception:
+        pass
 
     while not _stop_event.is_set():
         if dom.n == 0:
@@ -97,48 +138,70 @@ def _loop() -> None:
         params   = _params.build()
         dt       = config.tick.dt
 
-        # Snapshot arrays — lock held only for the duration of CPU copies.
+        # ------------------------------------------------------------------
+        # Conditional upload: re-upload only when DOM structure has changed.
+        # Lock is held only for CPU array copies; GPU ops run outside lock.
+        # ------------------------------------------------------------------
         with positions_lock:
-            n      = dom.n
-            pos_np = dom.positions.copy()
-            w_np   = dom.weights.copy()
-            pin_np = dom.pinned.copy()
-            e_np   = dom.edges.copy()
+            n = dom.n
+            if n != _gpu_n:
+                # Structural change (reseed / add / remove node): full re-upload.
+                pos_np = dom.positions.copy()
+                w_np   = dom.weights.copy()
+                pin_np = dom.pinned.copy()
+                e_np   = dom.edges.copy()
+            # If n == _gpu_n, skip all CPU copies — GPU already has latest positions.
 
-        # Upload once, then run `substeps` relax_step calls back-to-back on
-        # the GPU with zero CPU roundtrips between them. CuPy releases the
-        # GIL on every kernel launch, so these run in parallel with the main
-        # thread's matplotlib renderer. Amortising Python overhead over
-        # `substeps` is the key fix for GIL-contention-limited throughput.
-        #
-        # Cast to float32 before upload: RTX 5070 Ti has 32x more float32
-        # throughput than float64, and halves intermediate array sizes.
-        pos_gpu = to_device(pos_np.astype(np.float32))
-        w_gpu   = to_device(w_np.astype(np.float32))
-        pin_gpu = to_device(pin_np)
-        e_gpu   = to_device(e_np)
+        stream_ctx = _physics_stream if _physics_stream is not None else _NullCtx()
+        with stream_ctx:
+            if n != _gpu_n:
+                _pos_gpu = to_device(pos_np.astype(np.float32))
+                _w_gpu   = to_device(w_np.astype(np.float32))
+                _pin_gpu = to_device(pin_np.astype(np.uint8))
+                _e_gpu   = to_device(e_np.astype(np.int32))
+                _gpu_n   = n
 
-        T = temperature.get()
-        for _ in range(substeps):
-            pos_gpu = relax_step(
-                pos_gpu, w_gpu, pin_gpu,
-                edges=e_gpu,
-                dt=dt,
-                temperature=T,
-                params=params,
-            )
-            T = cool(T, cooling_factor=config.physics.cooling_factor,
-                     min_temperature=config.physics.min_temperature)
+            # GPU-to-GPU copy (~60 KB for N=5000); no PCIe traffic.
+            # .copy() is required so prev holds the start-of-batch snapshot
+            # while _pos_gpu accumulates substep results.
+            prev_pos_gpu = _pos_gpu.copy()
 
-        # Single sync point: one download for the whole batch.
-        # Cast back to float64 so the DOM always stores float64 positions.
-        new_pos  = to_numpy(pos_gpu).astype(np.float64)
-        step     = new_pos - pos_np
-        max_disp = float(np.linalg.norm(step, axis=1).max())
+            T = temperature.get()
+            for _ in range(substeps):
+                _pos_gpu = relax_step(
+                    _pos_gpu, _w_gpu, _pin_gpu,
+                    edges=_e_gpu,
+                    dt=dt,
+                    temperature=T,
+                    params=params,
+                )
+                T = cool(T, cooling_factor=config.physics.cooling_factor,
+                         min_temperature=config.physics.min_temperature)
+
+        # Single sync point: covers all kernel launches in the batch.
+        if _physics_stream is not None:
+            _physics_stream.synchronize()
+
+        # ------------------------------------------------------------------
+        # On-GPU convergence check: one scalar download (~4 bytes) rather
+        # than a full float64 array download just to compute a max-norm.
+        # ------------------------------------------------------------------
+        try:
+            import cupy as cp
+            disp     = _pos_gpu - prev_pos_gpu
+            max_disp = float(cp.max(cp.linalg.norm(disp, axis=1)).get())
+        except Exception:
+            new_pos_np = to_numpy(_pos_gpu).astype(np.float64)
+            prev_np    = to_numpy(prev_pos_gpu).astype(np.float64)
+            max_disp   = float(np.linalg.norm(new_pos_np - prev_np, axis=1).max())
+
+        # Download for CPU DOM write-back (render loop reads dom.positions).
+        new_pos = to_numpy(_pos_gpu).astype(np.float64)
 
         # Advance shared temperature to the batch end point.
         for _ in range(substeps):
             temperature.step()
+        _current_temperature = T
 
         # Write back only if DOM structure is unchanged during the batch.
         with positions_lock:

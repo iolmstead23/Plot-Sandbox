@@ -37,17 +37,23 @@ def build_sidebar(
     sliders: list["SliderSpec"],
     padx: int,
     pady: int,
-) -> QWidget:
+) -> tuple[QWidget, list[QPushButton]]:
     sidebar = QWidget()
     sidebar.setFixedWidth(_SIDEBAR_WIDTH)
     layout = QVBoxLayout(sidebar)
     layout.setContentsMargins(padx, pady, padx, pady)
     layout.setSpacing(pady)
 
-    for label, handler in buttons:
+    gated_buttons: list[QPushButton] = []
+    for spec in buttons:
+        label, handler = spec[0], spec[1]
+        gated = len(spec) > 2 and bool(spec[2])
         btn = QPushButton(label)
         btn.setFixedWidth(_BUTTON_WIDTH)
         btn.clicked.connect(lambda _checked, h=handler: h(app))
+        if gated:
+            btn.setEnabled(False)
+            gated_buttons.append(btn)
         layout.addWidget(btn)
 
     layout.addSpacerItem(
@@ -122,4 +128,4 @@ def build_sidebar(
         }}
     """)
 
-    return sidebar
+    return sidebar, gated_buttons

@@ -42,6 +42,7 @@ def seed_physics_dom(rng: np.random.Generator) -> None:
         inner_radius_fraction=sim.inner_radius_fraction,
         outer_radius_fraction=sim.outer_radius_fraction,
         dims=sim.dims,
+        layout_noise=sim.layout_noise,
     )
 
     for i in range(n):

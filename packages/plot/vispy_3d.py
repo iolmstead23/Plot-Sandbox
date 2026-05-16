@@ -38,6 +38,9 @@ def build_vispy_scene(
     axis_length: float = 5.0,
     elev: float = 25.0,
     azim: float = -60.0,
+    camera_distance: float = 30.0,
+    node_size_min: float = _NODE_SIZE_MIN,
+    node_size_max: float = _NODE_SIZE_MAX,
 ) -> SceneObjects:
     canvas = scene.SceneCanvas(
         title=title,
@@ -51,7 +54,7 @@ def build_vispy_scene(
         fov=0,
         elevation=elev,
         azimuth=azim,
-        distance=30,
+        distance=camera_distance,
     )
 
     axes = axis_visual(focus, axis_length)
@@ -61,7 +64,7 @@ def build_vispy_scene(
     node_colors = generate_node_colors(n)
     pos_f32 = positions.astype(np.float32) if n > 0 else np.zeros((1, 3), np.float32)
     sz_f32 = (
-        np.clip(sizes * size_scale, _NODE_SIZE_MIN, _NODE_SIZE_MAX).astype(np.float32)
+        np.clip(sizes * size_scale, node_size_min, node_size_max).astype(np.float32)
         if n > 0
         else np.ones(1, np.float32) * 4.0
     )
@@ -105,25 +108,22 @@ def update_vispy_scene(
     edges: np.ndarray,
     *,
     size_scale: float = 1.0,
+    node_size_min: float = _NODE_SIZE_MIN,
+    node_size_max: float = _NODE_SIZE_MAX,
 ) -> None:
     """Upload fresh positions/sizes/edges to the GPU VBOs each render frame."""
     n = positions.shape[0]
     if n == 0:
         return
 
-    # Regenerate colours only when node count changes (structural mutation).
+    pos_f32 = positions.astype(np.float32)
+    sz_f32 = np.clip(sizes * size_scale, node_size_min, node_size_max).astype(np.float32)
+
+    # Regenerate color array only when node count changes; always upload it
+    # because VisPy's set_data resets unspecified attributes to defaults.
     if len(so.node_colors) != n:
         so.node_colors = generate_node_colors(n)
-
-    pos_f32 = positions.astype(np.float32)
-    sz_f32 = np.clip(sizes * size_scale, _NODE_SIZE_MIN, _NODE_SIZE_MAX).astype(np.float32)
-
-    so.markers.set_data(
-        pos_f32,
-        face_color=so.node_colors,  # type: ignore[arg-type]
-        size=sz_f32,
-        edge_width=0,
-    )
+    so.markers.set_data(pos_f32, face_color=so.node_colors, size=sz_f32, edge_width=0)  # type: ignore[arg-type]
 
     if edges.shape[0] > 0:
         edge_pts = positions[edges].reshape(-1, 3).astype(np.float32)
