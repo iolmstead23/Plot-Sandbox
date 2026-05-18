@@ -28,4 +28,5 @@ def build() -> dict:
         "repulsion_cutoff": p.repulsion_cutoff,
         "bh_threshold": p.bh_threshold,
         "bh_theta": p.bh_theta,
+        "cpu_sparse_threshold": p.cpu_sparse_threshold,
     }

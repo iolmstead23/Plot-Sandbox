@@ -19,4 +19,5 @@ class PhysicsConfig:
     repulsion_cutoff: float = 6.0
     bh_threshold: int = 5000
     bh_theta: float = 0.7
-    mutation_reheat_factor: float = 0.25
+    mutation_reheat_factor: float = 0.05
+    cpu_sparse_threshold: int = 150

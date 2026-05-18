@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from .dom import seed_physics_dom
 from .state import temperature
 
 
-def reseed(app, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
+def reseed(app: Any, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
     app.stop_tick()
     stop_fn()
     temperature.reset()  # full reset — _on_dom_change only does warm partial reheat
@@ -23,9 +23,9 @@ def reseed(app, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
             project_to_3d(dom.positions),
             dom.sizes,
             dom.edges,
-            size_scale=config.plot.size_scale,
-            node_size_min=config.plot.node_size_min,
-            node_size_max=config.plot.node_size_max,
+            size_scale=config.render.size_scale,
+            node_size_min=config.render.node_size_min,
+            node_size_max=config.render.node_size_max,
         )
         app.canvas.update()
 

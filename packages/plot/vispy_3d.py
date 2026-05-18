@@ -20,13 +20,16 @@ from vispy.scene.visuals import Line, Markers  # type: ignore[attr-defined]
 
 from ._scene import SceneObjects
 from ._helpers import generate_node_colors, axis_visual
-from .theme import _BG, _EDGE_COLOR, _EDGE_WIDTH, _NODE_SIZE_MIN, _NODE_SIZE_MAX
+from .theme import (
+    _AXIS_LENGTH, _BG,
+    _EDGE_COLOR, _EDGE_WIDTH,
+    _NODE_SIZE_DEFAULT,
+)
 
 
 def build_vispy_scene(
     positions: np.ndarray,
     sizes: np.ndarray,
-    labels: list[str],
     edges: np.ndarray,
     *,
     title: str = "3D Plot",
@@ -35,12 +38,12 @@ def build_vispy_scene(
     edge_color: tuple = _EDGE_COLOR,
     edge_width: float = _EDGE_WIDTH,
     size_scale: float = 1.0,
-    axis_length: float = 5.0,
-    elev: float = 25.0,
-    azim: float = -60.0,
-    camera_distance: float = 30.0,
-    node_size_min: float = _NODE_SIZE_MIN,
-    node_size_max: float = _NODE_SIZE_MAX,
+    axis_length: float = _AXIS_LENGTH,
+    elev: float,
+    azim: float,
+    camera_distance: float,
+    node_size_min: float,
+    node_size_max: float,
 ) -> SceneObjects:
     canvas = scene.SceneCanvas(
         title=title,
@@ -66,7 +69,7 @@ def build_vispy_scene(
     sz_f32 = (
         np.clip(sizes * size_scale, node_size_min, node_size_max).astype(np.float32)
         if n > 0
-        else np.ones(1, np.float32) * 4.0
+        else np.ones(1, np.float32) * _NODE_SIZE_DEFAULT
     )
 
     markers = Markers(antialias=0)
@@ -108,8 +111,8 @@ def update_vispy_scene(
     edges: np.ndarray,
     *,
     size_scale: float = 1.0,
-    node_size_min: float = _NODE_SIZE_MIN,
-    node_size_max: float = _NODE_SIZE_MAX,
+    node_size_min: float,
+    node_size_max: float,
 ) -> None:
     """Upload fresh positions/sizes/edges to the GPU VBOs each render frame."""
     n = positions.shape[0]

@@ -24,7 +24,7 @@ _gpu_enabled: bool = False
 _pool = None   # CuPy MemoryPool, set by setup(); exposed for diagnostics
 
 
-def setup(use_gpu: bool) -> bool:
+def setup(use_gpu: bool, cuda_device: int = 0, gpu_memory_pool_gb: float = 4.0) -> bool:
     """Attempt to initialise a CUDA device. Returns True when GPU is active."""
     import sys
     global _gpu_enabled, _pool
@@ -40,25 +40,24 @@ def setup(use_gpu: bool) -> bool:
         print("[GPU] Falling back to CPU")
         return False
     try:
-        _cupy.cuda.Device(0).use()
+        _cupy.cuda.Device(cuda_device).use()
         _cupy.zeros(1)  # force CUDA context initialization
-        props = _cupy.cuda.runtime.getDeviceProperties(0)
+        props = _cupy.cuda.runtime.getDeviceProperties(cuda_device)
         name = props.get("name", b"unknown")
         if isinstance(name, bytes):
             name = name.decode()
-        mem = _cupy.cuda.Device(0).mem_info
+        mem = _cupy.cuda.Device(cuda_device).mem_info
         free_mb  = mem[0] // 1024 ** 2
         total_mb = mem[1] // 1024 ** 2
         _gpu_enabled = True
 
         # Memory pool: recycles freed VRAM instead of calling cudaMalloc each
-        # tick.  Cap at 4 GB so the pool does not silently consume all VRAM
-        # from intermediate physics arrays that were freed but not yet GC'd.
+        # tick. Cap configurable via config.simulation.gpu_memory_pool_gb.
         _pool = _cupy.cuda.MemoryPool()
-        _pool.set_limit(size=4 * 1024 ** 3)
+        _pool.set_limit(size=int(gpu_memory_pool_gb * 1024 ** 3))
         _cupy.cuda.set_allocator(_pool.malloc)
 
-        print(f"[GPU] CUDA device 0: {name}  ({free_mb} / {total_mb} MB free)")
+        print(f"[GPU] CUDA device {cuda_device}: {name}  ({free_mb} / {total_mb} MB free)")
         return True
     except Exception as exc:
         _gpu_enabled = False

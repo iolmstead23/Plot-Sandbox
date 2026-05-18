@@ -1,6 +1,16 @@
-"""Entry point: orchestrates dom, physics, plot, state, and ui packages."""
+"""Entry point: orchestrates dom, physics, plot, state, and ui packages.
+
+Usage:
+    python main.py                            # GUI
+    python main.py --seed 42                  # GUI with reproducible layout
+    python main.py --headless                 # single headless run, saves NPZ
+    python main.py --sweep                    # full parameter sweep
+    python main.py --sweep --dry-run          # preview sweep combinations
+    python main.py --sweep --max-runs 10 --shuffle
+"""
 
 import argparse
+import sys
 
 import numpy as np
 
@@ -18,65 +28,137 @@ from handlers import (
     reseed_handler,
     seed_physics_dom,
 )
+from handlers.headless import run_headless
+from handlers.sweep import run_sweep
+from handlers.sweep.params import FIXED as SWEEP_FIXED
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="3D physics simulation of nodes.")
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="Seed for numpy RNG. Same seed produces the same initial layout.",
-    )
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Seed for numpy RNG. Same seed produces the same initial layout.")
+    # Mode flags
+    parser.add_argument("--headless", action="store_true",
+                        help="Run without GUI; saves NPZ output and exits.")
+    parser.add_argument("--sweep", action="store_true",
+                        help="Run a parameter sweep; spawns one headless subprocess per grid combo.")
+    # Shared run options
+    parser.add_argument("--output-dir", "-o", default=None,
+                        help="Output directory. Headless default: output/  Sweep default: .output/grid")
+    parser.add_argument("--max-ticks", type=int, default=None,
+                        help="Max physics steps per run. Headless default: 50000  Sweep default: 10000")
+    # Sweep-only options
+    parser.add_argument("--max-runs", type=int, default=None,
+                        help="Cap the sweep grid at N randomly sampled combinations.")
+    parser.add_argument("--shuffle", action="store_true",
+                        help="Randomize sweep run order (useful with --max-runs).")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print all sweep combinations and exit without running.")
+    # Config overrides (applied before seeding; passed through to subprocesses in sweep mode)
+    parser.add_argument("--node-count", type=int, default=None,
+                        help="Override config.simulation.node_count")
+    parser.add_argument("--dims", type=int, default=None,
+                        help="Override config.simulation.dims")
+    parser.add_argument("--gravity-ratio", type=float, default=None,
+                        help="Override config.physics.gravity_ratio")
+    parser.add_argument("--repel-ratio", type=float, default=None,
+                        help="Override config.physics.repel_ratio")
+    parser.add_argument("--k-edge", type=float, default=None,
+                        help="Override config.physics.k_edge")
+    parser.add_argument("--initial-temp", type=float, default=None,
+                        help="Override config.physics.initial_temperature")
+    parser.add_argument("--cooling-factor", type=float, default=None,
+                        help="Override config.physics.cooling_factor")
+    parser.add_argument("--dt", type=float, default=None,
+                        help="Override config.tick.dt")
+    parser.add_argument("--weight-min", type=float, default=None,
+                        help="Override config.simulation.weight_min")
+    parser.add_argument("--weight-max", type=float, default=None,
+                        help="Override config.simulation.weight_max")
+    parser.add_argument("--max-degree", type=int, default=None,
+                        help="Override config.simulation.max_degree (max edges per node)")
     args = parser.parse_args()
 
-    setup_backend(config.simulation.use_gpu)
+    # Sweep mode: build fixed dict from SWEEP_FIXED + CLI overrides, dispatch, and exit.
+    # No GPU init needed here — each subprocess calls setup_backend for itself.
+    if args.sweep:
+        fixed = {**SWEEP_FIXED}
+        if args.output_dir  is not None: fixed["--output-dir"] = args.output_dir
+        if args.max_ticks   is not None: fixed["--max-ticks"]  = str(args.max_ticks)
+        if args.seed        is not None: fixed["--seed"]       = str(args.seed)
+        if args.node_count  is not None: fixed["--node-count"] = str(args.node_count)
+        run_sweep(fixed, args)
+        sys.exit(0)
 
-    dom.weight_to_size = config.dom.weight_to_size
-    dom.dims = config.simulation.dims
+    # Apply config overrides before setup_backend reads use_gpu
+    if args.node_count is not None:      config.simulation.node_count = args.node_count
+    if args.dims is not None:            config.simulation.dims = args.dims
+    if args.gravity_ratio is not None:   config.physics.gravity_ratio = args.gravity_ratio
+    if args.repel_ratio is not None:     config.physics.repel_ratio = args.repel_ratio
+    if args.k_edge is not None:          config.physics.k_edge = args.k_edge
+    if args.initial_temp is not None:    config.physics.initial_temperature = args.initial_temp
+    if args.cooling_factor is not None:  config.physics.cooling_factor = args.cooling_factor
+    if args.dt is not None:             config.tick.dt = args.dt
+    if args.weight_min is not None:      config.simulation.weight_min = args.weight_min
+    if args.weight_max is not None:      config.simulation.weight_max = args.weight_max
+    if args.max_degree is not None:      config.simulation.max_degree = args.max_degree
+
+    setup_backend(
+        config.simulation.use_gpu,
+        cuda_device=config.tick.cuda_device,
+        gpu_memory_pool_gb=config.simulation.gpu_memory_pool_gb,
+    )
 
     rng = np.random.default_rng(args.seed)
+
+    if args.headless:
+        run_headless(args.output_dir or "output", rng, args.max_ticks or config.tick.headless_max_ticks)
+        sys.exit(0)
+
+    dom.weight_to_size = config.render.weight_to_size
+    dom.dims = config.simulation.dims
+
     seed_physics_dom(rng)
 
     scene_objects = build_vispy_scene(
         project_to_3d(dom.positions),
         dom.sizes,
-        list(dom.labels),
         dom.edges,
-        title=config.plot.title,
+        title=config.render.title,
         focus=state.camera_focus,
-        elev=config.view.elev,
-        azim=config.view.azim,
-        axis_length=config.view.view_range * 0.4,
-        size_scale=config.plot.size_scale,
-        camera_distance=config.view.camera_distance,
-        node_size_min=config.plot.node_size_min,
-        node_size_max=config.plot.node_size_max,
+        elev=config.render.camera_elev,
+        azim=config.render.camera_azim,
+        axis_length=config.render.view_range * 0.4,
+        size_scale=config.render.size_scale,
+        camera_distance=config.render.camera_distance,
+        node_size_min=config.render.node_size_min,
+        node_size_max=config.render.node_size_max,
     )
 
+    _sr = config.sliders
     sliders = [
         (
             "gravity_ratio",
             config.physics.gravity_ratio,
-            0.0,
-            0.01,
-            0.0001,
+            _sr.gravity_ratio.min,
+            _sr.gravity_ratio.max,
+            _sr.gravity_ratio.step,
             make_force_slider_callback("gravity_ratio", reseed_fn=reseed_handler),
         ),
         (
             "repel_ratio",
             config.physics.repel_ratio,
-            0.0,
-            0.05,
-            0.0005,
+            _sr.repel_ratio.min,
+            _sr.repel_ratio.max,
+            _sr.repel_ratio.step,
             make_force_slider_callback("repel_ratio", reseed_fn=reseed_handler),
         ),
         (
             "k_edge",
             config.physics.k_edge,
-            0.0,
-            1.0,
-            0.01,
+            _sr.k_edge.min,
+            _sr.k_edge.max,
+            _sr.k_edge.step,
             make_force_slider_callback("k_edge", reseed_fn=reseed_handler),
         ),
     ]

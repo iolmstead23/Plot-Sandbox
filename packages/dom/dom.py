@@ -2,7 +2,7 @@
 
 NumPy arrays are the source of truth. The integrator writes via the underscore-prefixed
 bulk API (`_set_positions`); all other mutation flows through the public
-methods. Each mutator bumps `_revision` and (optionally) notifies the `on_change` seam.
+methods. Each mutator calls `_bump()` to (optionally) notify the `on_change` seam.
 """
 
 from typing import Callable, Optional
@@ -12,7 +12,7 @@ import numpy as np
 
 class DOM:
     def __init__(self) -> None:
-        # Configurable at startup by main.py via dom.weight_to_size = config.dom.weight_to_size.
+        # Configurable at startup by main.py via dom.weight_to_size = config.render.weight_to_size.
         self.weight_to_size: float = 40.0
         # Spatial dimensionality. Set by main.py from config.simulation.dims before any seeding.
         self.dims: int = 3
@@ -25,7 +25,6 @@ class DOM:
         self._id_to_index: dict[int, int] = {}
         self._index_to_id: list[int] = []
         self._next_id: int = 0
-        self._revision: int = 0
 
         # Single optional seam (no list, no pub/sub framework). Wired by
         # handlers.tick to reheat the integrator on user/structural
@@ -40,12 +39,7 @@ class DOM:
     def sizes(self) -> np.ndarray:
         return self.weights * self.weight_to_size
 
-    @property
-    def revision(self) -> int:
-        return self._revision
-
     def _bump(self, *, notify: bool = True) -> None:
-        self._revision += 1
         if notify and self.on_change is not None:
             self.on_change(self)
 
@@ -108,10 +102,6 @@ class DOM:
 
         self._bump()
 
-    def set_weight(self, node_id: int, weight: float) -> None:
-        self.weights[self._id_to_index[node_id]] = weight
-        self._bump()
-
     def clear(self) -> None:
         """Reset all node data and the ID counter to initial state."""
         self.positions = np.zeros((0, self.dims), dtype=np.float64)
@@ -122,7 +112,6 @@ class DOM:
         self._id_to_index = {}
         self._index_to_id = []
         self._next_id = 0
-        self._revision += 1
 
     def add_edge(self, i: int, j: int) -> None:
         if i == j:

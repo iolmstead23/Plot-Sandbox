@@ -12,10 +12,6 @@ class Recorder:
         if len(self._frames) < self._max_frames:
             self._frames.append(VelocimetryFrame(temperature, distances.copy()))
 
-    @property
-    def frames(self) -> list[VelocimetryFrame]:
-        return self._frames
-
     def is_empty(self) -> bool:
         return not self._frames
 

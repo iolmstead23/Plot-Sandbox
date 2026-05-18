@@ -12,8 +12,9 @@ def pairwise_repulsion(
     k_r: float,
     soft_core_radius: float,
     cutoff: float = 0.0,
-    bh_threshold: int = 5000,
-    bh_theta: float = 0.7,
+    bh_threshold: int,
+    bh_theta: float,
+    cpu_sparse_threshold: int = 150,
 ) -> np.ndarray:
     xp = get_module(positions)
     n = positions.shape[0]
@@ -36,7 +37,7 @@ def pairwise_repulsion(
         )
 
     # CPU sparse path: skip pairs beyond cutoff using scipy.spatial.cKDTree.
-    if cutoff > 0.0 and n >= 150 and scipy_available():
+    if cutoff > 0.0 and n >= cpu_sparse_threshold and scipy_available():
         return pairwise_repulsion_sparse(
             positions, weights, k_r=k_r,
             soft_core_radius=soft_core_radius, cutoff=cutoff,

@@ -53,7 +53,7 @@ def repulsion(
     *,
     k_r: float,
     soft_core_radius: float,
-    theta: float = 0.7,
+    theta: float,
 ) -> np.ndarray:
     """Return (N, 3) repulsive forces, O(N log N).  Requires Numba and D=3."""
     if not available():

@@ -23,6 +23,8 @@ from .theme import (
     _BUTTON_HOVER,
     _BUTTON_WIDTH,
     _SIDEBAR_WIDTH,
+    _SLIDER_MARGIN,
+    _SLIDER_PADDING,
     _TEXT,
 )
 
@@ -99,7 +101,7 @@ def build_sidebar(
             background-color: {_BUTTON_BG};
             color: {_TEXT};
             border: 1px solid {_BORDER};
-            padding: 4px 8px;
+            padding: {_SLIDER_PADDING};
             border-radius: 3px;
         }}
         QWidget#sidebar_container QPushButton:hover {{
@@ -124,7 +126,7 @@ def build_sidebar(
             width: 12px;
             height: 12px;
             border-radius: 6px;
-            margin: -4px 0;
+            margin: {_SLIDER_MARGIN};
         }}
     """)
 

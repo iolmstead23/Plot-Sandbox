@@ -76,8 +76,9 @@ def relax_step(
             k_r=p["k_repel"],
             soft_core_radius=p["soft_core_radius"],
             cutoff=p.get("repulsion_cutoff", 0.0),
-            bh_threshold=p.get("bh_threshold", 5000),
-            bh_theta=p.get("bh_theta", 0.7),
+            bh_threshold=p["bh_threshold"],
+            bh_theta=p["bh_theta"],
+            cpu_sparse_threshold=p.get("cpu_sparse_threshold", 150),
         )
         + attract
     )

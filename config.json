@@ -15,10 +15,11 @@
     "repulsion_cutoff": 3.0,
     "bh_threshold": 5000,
     "bh_theta": 0.7,
-    "mutation_reheat_factor": 0.05
+    "mutation_reheat_factor": 0.05,
+    "cpu_sparse_threshold": 150
   },
   "simulation": {
-    "node_count": 15000,
+    "node_count": 2500,
     "weight_min": 1.0,
     "weight_max": 50.0,
     "spawn_distance": 2.0,
@@ -27,7 +28,8 @@
     "dims": 3,
     "max_degree": 10,
     "use_gpu": true,
-    "layout_noise": 1.0
+    "layout_noise": 1.0,
+    "gpu_memory_pool_gb": 4.0
   },
   "tick": {
     "dt": 0.05,
@@ -35,21 +37,19 @@
     "interval_ms": 33,
     "render_every": 2,
     "physics_substeps": 32,
-    "cuda_device": 0
+    "cuda_device": 0,
+    "headless_progress_interval": 5.0,
+    "headless_max_ticks": 50000
   },
-  "view": {
-    "elev": 25.0,
-    "azim": -60.0,
+  "render": {
+    "camera_elev": 25.0,
+    "camera_azim": -60.0,
     "view_range": 10.0,
-    "camera_distance": 30.0
-  },
-  "plot": {
+    "camera_distance": 30.0,
     "title": "Knowledge Graph Simulation",
     "size_scale": 1.0,
     "node_size_min": 2.0,
-    "node_size_max": 20.0
-  },
-  "dom": {
+    "node_size_max": 20.0,
     "weight_to_size": 3.0
   },
   "ui": {
@@ -60,10 +60,15 @@
   },
   "velocimetry": {
     "enabled": true,
-    "output_path": "velocimetry_output",
+    "output_path": ".output",
     "save_csv": false,
     "save_npz": true,
     "plot_on_convergence": true,
     "max_frames": 20000
+  },
+  "sliders": {
+    "gravity_ratio": { "min": 0.0, "max": 0.01, "step": 0.0001 },
+    "repel_ratio": { "min": 0.0, "max": 0.05, "step": 0.0005 },
+    "k_edge": { "min": 0.0, "max": 1.0, "step": 0.01 }
   }
 }
