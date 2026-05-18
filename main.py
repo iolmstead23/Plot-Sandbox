@@ -35,73 +35,206 @@ from handlers.sweep.params import FIXED as SWEEP_FIXED
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="3D physics simulation of nodes.")
-    parser.add_argument("--seed", type=int, default=None,
-                        help="Seed for numpy RNG. Same seed produces the same initial layout.")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed for numpy RNG. Same seed produces the same initial layout.",
+    )
     # Mode flags
-    parser.add_argument("--headless", action="store_true",
-                        help="Run without GUI; saves NPZ output and exits.")
-    parser.add_argument("--sweep", action="store_true",
-                        help="Run a parameter sweep; spawns one headless subprocess per grid combo.")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run without GUI; saves NPZ output and exits.",
+    )
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="Run a parameter sweep; spawns one headless subprocess per grid combo.",
+    )
     # Shared run options
-    parser.add_argument("--output-dir", "-o", default=None,
-                        help="Output directory. Headless default: output/  Sweep default: .output/grid")
-    parser.add_argument("--max-ticks", type=int, default=None,
-                        help="Max physics steps per run. Headless default: 50000  Sweep default: 10000")
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        default=None,
+        help="Output directory. Headless default: output/  Sweep default: .output/grid",
+    )
+    parser.add_argument(
+        "--max-ticks",
+        type=int,
+        default=None,
+        help="Max physics steps per run. Headless default: 50000  Sweep default: 10000",
+    )
     # Sweep-only options
-    parser.add_argument("--max-runs", type=int, default=None,
-                        help="Cap the sweep grid at N randomly sampled combinations.")
-    parser.add_argument("--shuffle", action="store_true",
-                        help="Randomize sweep run order (useful with --max-runs).")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print all sweep combinations and exit without running.")
+    parser.add_argument(
+        "--max-runs",
+        type=int,
+        default=None,
+        help="Cap the sweep grid at N randomly sampled combinations.",
+    )
+    parser.add_argument(
+        "--shuffle",
+        action="store_true",
+        help="Randomize sweep run order (useful with --max-runs).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print all sweep combinations and exit without running.",
+    )
     # Config overrides (applied before seeding; passed through to subprocesses in sweep mode)
-    parser.add_argument("--node-count", type=int, default=None,
-                        help="Override config.simulation.node_count")
-    parser.add_argument("--dims", type=int, default=None,
-                        help="Override config.simulation.dims")
-    parser.add_argument("--gravity-ratio", type=float, default=None,
-                        help="Override config.physics.gravity_ratio")
-    parser.add_argument("--repel-ratio", type=float, default=None,
-                        help="Override config.physics.repel_ratio")
-    parser.add_argument("--k-edge", type=float, default=None,
-                        help="Override config.physics.k_edge")
-    parser.add_argument("--initial-temp", type=float, default=None,
-                        help="Override config.physics.initial_temperature")
-    parser.add_argument("--cooling-factor", type=float, default=None,
-                        help="Override config.physics.cooling_factor")
-    parser.add_argument("--dt", type=float, default=None,
-                        help="Override config.tick.dt")
-    parser.add_argument("--weight-min", type=float, default=None,
-                        help="Override config.simulation.weight_min")
-    parser.add_argument("--weight-max", type=float, default=None,
-                        help="Override config.simulation.weight_max")
-    parser.add_argument("--max-degree", type=int, default=None,
-                        help="Override config.simulation.max_degree (max edges per node)")
+    parser.add_argument(
+        "--node-count",
+        type=int,
+        default=None,
+        help="Override config.simulation.node_count",
+    )
+    parser.add_argument(
+        "--dims", type=int, default=None, help="Override config.simulation.dims"
+    )
+    parser.add_argument(
+        "--gravity-ratio",
+        type=float,
+        default=None,
+        help="Override config.physics.gravity_ratio",
+    )
+    parser.add_argument(
+        "--repel-ratio",
+        type=float,
+        default=None,
+        help="Override config.physics.repel_ratio",
+    )
+    parser.add_argument(
+        "--k-edge", type=float, default=None, help="Override config.physics.k_edge"
+    )
+    parser.add_argument(
+        "--initial-temp",
+        type=float,
+        default=None,
+        help="Override config.physics.initial_temperature",
+    )
+    parser.add_argument(
+        "--cooling-factor",
+        type=float,
+        default=None,
+        help="Override config.physics.cooling_factor",
+    )
+    parser.add_argument(
+        "--dt", type=float, default=None, help="Override config.tick.dt"
+    )
+    parser.add_argument(
+        "--weight-min",
+        type=float,
+        default=None,
+        help="Override config.simulation.weight_min",
+    )
+    parser.add_argument(
+        "--weight-max",
+        type=float,
+        default=None,
+        help="Override config.simulation.weight_max",
+    )
+    parser.add_argument(
+        "--max-degree",
+        type=int,
+        default=None,
+        help="Override config.simulation.max_degree (max edges per node)",
+    )
+    # Compute device selection
+    parser.add_argument(
+        "--cuda-device",
+        type=int,
+        default=None,
+        help="CUDA device index to use for physics (overrides config.tick.cuda_device)",
+    )
+    parser.add_argument(
+        "--gpu",
+        action="store_true",
+        help="Force GPU physics using config.tick.cuda_device",
+    )
+    parser.add_argument(
+        "--cpu", action="store_true", help="Force CPU physics (disables GPU)"
+    )
+    parser.add_argument(
+        "--list-gpus", action="store_true", help="Print available CUDA devices and exit"
+    )
     args = parser.parse_args()
 
     # Sweep mode: build fixed dict from SWEEP_FIXED + CLI overrides, dispatch, and exit.
     # No GPU init needed here — each subprocess calls setup_backend for itself.
     if args.sweep:
         fixed = {**SWEEP_FIXED}
-        if args.output_dir  is not None: fixed["--output-dir"] = args.output_dir
-        if args.max_ticks   is not None: fixed["--max-ticks"]  = str(args.max_ticks)
-        if args.seed        is not None: fixed["--seed"]       = str(args.seed)
-        if args.node_count  is not None: fixed["--node-count"] = str(args.node_count)
+        if args.output_dir is not None:
+            fixed["--output-dir"] = args.output_dir
+        if args.max_ticks is not None:
+            fixed["--max-ticks"] = str(args.max_ticks)
+        if args.seed is not None:
+            fixed["--seed"] = str(args.seed)
+        if args.node_count is not None:
+            fixed["--node-count"] = str(args.node_count)
         run_sweep(fixed, args)
         sys.exit(0)
 
+    # --list-gpus: enumerate CUDA devices and exit
+    if args.list_gpus:
+        try:
+            import pynvml  # type: ignore[import-untyped]
+
+            pynvml.nvmlInit()
+            count = pynvml.nvmlDeviceGetCount()
+            for i in range(count):
+                h = pynvml.nvmlDeviceGetHandleByIndex(i)
+                name = pynvml.nvmlDeviceGetName(h)
+                mem = pynvml.nvmlDeviceGetMemoryInfo(h)
+                print(
+                    f"  [{i}] {name}  ({int(mem.free)//1024**2} / {int(mem.total)//1024**2} MB free)"
+                )
+        except Exception:
+            try:
+                import cupy as cp  # type: ignore[import-untyped]
+
+                count = cp.cuda.runtime.getDeviceCount()
+                for i in range(count):
+                    props = cp.cuda.runtime.getDeviceProperties(i)
+                    print(
+                        f"  [{i}] {props['name'].decode()}  "
+                        f"({int(props['totalGlobalMem'])//1024**2} MB total)"
+                    )
+            except Exception:
+                print("No CUDA devices found or CuPy/pynvml not available.")
+        sys.exit(0)
+
     # Apply config overrides before setup_backend reads use_gpu
-    if args.node_count is not None:      config.simulation.node_count = args.node_count
-    if args.dims is not None:            config.simulation.dims = args.dims
-    if args.gravity_ratio is not None:   config.physics.gravity_ratio = args.gravity_ratio
-    if args.repel_ratio is not None:     config.physics.repel_ratio = args.repel_ratio
-    if args.k_edge is not None:          config.physics.k_edge = args.k_edge
-    if args.initial_temp is not None:    config.physics.initial_temperature = args.initial_temp
-    if args.cooling_factor is not None:  config.physics.cooling_factor = args.cooling_factor
-    if args.dt is not None:             config.tick.dt = args.dt
-    if args.weight_min is not None:      config.simulation.weight_min = args.weight_min
-    if args.weight_max is not None:      config.simulation.weight_max = args.weight_max
-    if args.max_degree is not None:      config.simulation.max_degree = args.max_degree
+    if args.cuda_device is not None:
+        config.tick.cuda_device = args.cuda_device
+        config.simulation.use_gpu = True
+    if args.gpu:
+        config.simulation.use_gpu = True
+    if args.cpu:
+        config.simulation.use_gpu = False
+
+    if args.node_count is not None:
+        config.simulation.node_count = args.node_count
+    if args.dims is not None:
+        config.simulation.dims = args.dims
+    if args.gravity_ratio is not None:
+        config.physics.gravity_ratio = args.gravity_ratio
+    if args.repel_ratio is not None:
+        config.physics.repel_ratio = args.repel_ratio
+    if args.k_edge is not None:
+        config.physics.k_edge = args.k_edge
+    if args.initial_temp is not None:
+        config.physics.initial_temperature = args.initial_temp
+    if args.cooling_factor is not None:
+        config.physics.cooling_factor = args.cooling_factor
+    if args.dt is not None:
+        config.tick.dt = args.dt
+    if args.weight_min is not None:
+        config.simulation.weight_min = args.weight_min
+    if args.weight_max is not None:
+        config.simulation.weight_max = args.weight_max
+    if args.max_degree is not None:
+        config.simulation.max_degree = args.max_degree
 
     setup_backend(
         config.simulation.use_gpu,
@@ -112,7 +245,11 @@ def main() -> None:
     rng = np.random.default_rng(args.seed)
 
     if args.headless:
-        run_headless(args.output_dir or "output", rng, args.max_ticks or config.tick.headless_max_ticks)
+        run_headless(
+            args.output_dir or "output",
+            rng,
+            args.max_ticks or config.tick.headless_max_ticks,
+        )
         sys.exit(0)
 
     dom.weight_to_size = config.render.weight_to_size
