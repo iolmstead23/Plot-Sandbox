@@ -8,20 +8,24 @@ from packages.dom import dom
 from packages.physics import cool, relax_step, to_device, to_numpy
 
 from ..state import temperature
+from .. import stats as _stats
 from . import _params
 from . import _thread_state as _state
 
 
 def loop() -> None:
     steps = 0
+    total_steps = 0
     t0 = time.perf_counter()
     _state._current_temperature = temperature.get()
+    _stats.reset()
 
     try:
         import cupy as cp
         cp.cuda.Device(config.tick.cuda_device).use()
+        _state._physics_stream = cp.cuda.Stream(non_blocking=True)
     except Exception:
-        pass
+        _state._physics_stream = None
 
     while not _state._stop_event.is_set():
         if dom.n == 0:
@@ -103,14 +107,25 @@ def loop() -> None:
                 dom._set_positions(new_pos)
 
         steps += substeps
+        total_steps += substeps
         elapsed = time.perf_counter() - t0
         if elapsed >= 1.0:
             _state._steps_per_sec = steps / elapsed
             steps = 0
             t0 = time.perf_counter()
 
+        _stats.maybe_gpu(
+            config.tick.cuda_device,
+            _state._steps_per_sec,
+            _state._current_temperature,
+            total_steps,
+            config.tick.stats_interval,
+            live=True,
+        )
+
         if max_disp < config.tick.equilibrium_threshold * substeps:
             elapsed = time.perf_counter() - t0
             if elapsed > 0 and steps > 0:
                 _state._steps_per_sec = steps / elapsed
+            _stats.finalize()
             _state._converged.set()

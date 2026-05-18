@@ -1,12 +1,12 @@
 """GPU headless loop — runs physics substeps on device until convergence."""
 
-import sys
 import time
 
 import numpy as np
 
 from packages.config import config
 from packages.physics import cool, relax_step, to_numpy
+from .. import stats as _stats
 
 
 def run_gpu_loop(
@@ -23,7 +23,9 @@ def run_gpu_loop(
 ) -> tuple[np.ndarray, float, int]:
     """Run GPU physics to convergence. Returns (positions_np, final_T, converged_at)."""
     converged_at = max_iterations * substeps
-    last_report = time.perf_counter()
+    max_steps = max_iterations * substeps
+    _stats.reset()
+    iter_t0 = time.perf_counter()
 
     for iteration in range(max_iterations):
         prev = pos.copy()
@@ -41,13 +43,16 @@ def run_gpu_loop(
                 to_numpy(pos).astype(np.float64) - to_numpy(prev).astype(np.float64),
                 axis=1).max())
 
-        now = time.perf_counter()
-        if now - last_report >= config.tick.headless_progress_interval:
-            print(f"  iter={iteration * substeps}  T={T:.4f}  disp={max_disp:.6f}", file=sys.stderr)
-            last_report = now
+        steps_done = (iteration + 1) * substeps
+        iter_elapsed = time.perf_counter() - iter_t0
+        sps = steps_done / iter_elapsed if iter_elapsed > 0 else 0.0
+        _stats.maybe_gpu(
+            config.tick.cuda_device, sps, T, steps_done,
+            config.tick.stats_interval, max_steps,
+        )
 
         if max_disp < threshold * substeps:
-            converged_at = (iteration + 1) * substeps
+            converged_at = steps_done
             break
 
     return to_numpy(pos).astype(np.float64), T, converged_at

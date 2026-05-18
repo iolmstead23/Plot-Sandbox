@@ -1,6 +1,21 @@
+# Core
 numpy
-scipy
-cupy-cuda13x
+PyQt6
 vispy
-pyqt6
+psutil
+
+# Optional: sparse spatial algorithms (CPU physics path)
+scipy
+
+# Optional: velocimetry phase-curve plots
+matplotlib
+
+# Optional: GPU physics (CUDA 13.x — change package name to match your CUDA version)
+# cupy-cuda12x  for CUDA 12
+cupy-cuda13x
+
+# Optional: GPU utilization stats (util %, memory) — falls back to CuPy VRAM-only if absent
+nvidia-ml-py
+
+# Optional: Barnes-Hut O(N log N) repulsion fallback (large graphs, CPU only)
 numba

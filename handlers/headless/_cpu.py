@@ -1,6 +1,5 @@
 """CPU headless loop — runs physics substeps inline until convergence."""
 
-import sys
 import time
 
 import numpy as np
@@ -8,6 +7,7 @@ import numpy as np
 from packages.config import config
 from packages.dom import dom
 from packages.physics import cool, relax_step
+from .. import stats as _stats
 
 
 def run_cpu_loop(
@@ -20,7 +20,9 @@ def run_cpu_loop(
 ) -> tuple[float, int]:
     """Run CPU physics to convergence. Returns (final_T, converged_at)."""
     converged_at = max_iterations * substeps
-    last_report = time.perf_counter()
+    max_steps = max_iterations * substeps
+    _stats.reset()
+    iter_t0 = time.perf_counter()
 
     for iteration in range(max_iterations):
         prev = dom.positions.copy()
@@ -35,13 +37,16 @@ def run_cpu_loop(
         max_disp = float(np.linalg.norm(pos - prev, axis=1).max())
         dom._set_positions(pos)
 
-        now = time.perf_counter()
-        if now - last_report >= config.tick.headless_progress_interval:
-            print(f"  iter={iteration * substeps}  T={T:.4f}  disp={max_disp:.6f}", file=sys.stderr)
-            last_report = now
+        steps_done = (iteration + 1) * substeps
+        iter_elapsed = time.perf_counter() - iter_t0
+        sps = steps_done / iter_elapsed if iter_elapsed > 0 else 0.0
+        _stats.maybe_cpu(
+            sps, T, steps_done,
+            config.tick.stats_interval, max_steps,
+        )
 
         if max_disp < threshold * substeps:
-            converged_at = (iteration + 1) * substeps
+            converged_at = steps_done
             break
 
     return T, converged_at

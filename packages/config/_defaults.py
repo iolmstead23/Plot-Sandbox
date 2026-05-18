@@ -45,7 +45,7 @@ _DEFAULT_CONFIG: dict = {
         "render_every": 2,
         "physics_substeps": 32,
         "cuda_device": 0,
-        "headless_progress_interval": 5.0,
+        "stats_interval": 1.0,
         "headless_max_ticks": 50000,
     },
     "render": {
