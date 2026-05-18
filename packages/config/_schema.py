@@ -41,7 +41,7 @@ _SCHEMA: dict = {
         "render_every": int,
         "physics_substeps": int,
         "cuda_device": int,
-        "headless_progress_interval": (int, float),
+        "stats_interval": (int, float),
         "headless_max_ticks": int,
     },
     "render": {

@@ -1,5 +1,6 @@
 """CPU tick path — inline physics, no background thread."""
 
+import time as _time
 from typing import Any
 
 import numpy as np
@@ -10,11 +11,23 @@ from packages.physics import relax_step, to_device, to_numpy
 from packages.plot import project_to_3d, update_vispy_scene
 
 from . import _params
+from .. import stats as _stats
 from ..state import temperature
 from ..velocimetry import on_converged as _vel_converged, record_tick as _vel_record
 
+_total_steps: int = 0
+_window_steps: int = 0
+_window_t0: float = 0.0
+_steps_per_sec: float = 0.0
+
 
 def tick(app: Any, render_counter: int) -> bool:
+    global _total_steps, _window_steps, _window_t0, _steps_per_sec
+
+    if _total_steps == 0:
+        _stats.reset()
+        _window_t0 = _time.perf_counter()
+
     converged = False
     app.set_converged(False)
 
@@ -42,6 +55,25 @@ def tick(app: Any, render_counter: int) -> bool:
         _vel_record(dom.positions, temperature.get())
         if converged:
             _vel_converged()
+
+        _total_steps += 1
+        _window_steps += 1
+        now = _time.perf_counter()
+        elapsed = now - _window_t0
+        if elapsed >= 1.0:
+            _steps_per_sec = _window_steps / elapsed
+            _window_steps = 0
+            _window_t0 = now
+
+        _stats.maybe_cpu(
+            _steps_per_sec,
+            temperature.get(),
+            _total_steps,
+            config.tick.stats_interval,
+            live=True,
+        )
+        if converged:
+            _stats.finalize()
 
     render_every = max(1, config.tick.render_every)
     if app.artists is not None and (render_counter % render_every == 0):
