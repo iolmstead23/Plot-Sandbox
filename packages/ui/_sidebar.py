@@ -23,6 +23,8 @@ from .theme import (
     _BUTTON_HOVER,
     _BUTTON_WIDTH,
     _SIDEBAR_WIDTH,
+    _SLIDER_MARGIN,
+    _SLIDER_PADDING,
     _TEXT,
 )
 
@@ -37,17 +39,23 @@ def build_sidebar(
     sliders: list["SliderSpec"],
     padx: int,
     pady: int,
-) -> QWidget:
+) -> tuple[QWidget, list[QPushButton]]:
     sidebar = QWidget()
     sidebar.setFixedWidth(_SIDEBAR_WIDTH)
     layout = QVBoxLayout(sidebar)
     layout.setContentsMargins(padx, pady, padx, pady)
     layout.setSpacing(pady)
 
-    for label, handler in buttons:
+    gated_buttons: list[QPushButton] = []
+    for spec in buttons:
+        label, handler = spec[0], spec[1]
+        gated = len(spec) > 2 and bool(spec[2])
         btn = QPushButton(label)
         btn.setFixedWidth(_BUTTON_WIDTH)
         btn.clicked.connect(lambda _checked, h=handler: h(app))
+        if gated:
+            btn.setEnabled(False)
+            gated_buttons.append(btn)
         layout.addWidget(btn)
 
     layout.addSpacerItem(
@@ -93,7 +101,7 @@ def build_sidebar(
             background-color: {_BUTTON_BG};
             color: {_TEXT};
             border: 1px solid {_BORDER};
-            padding: 4px 8px;
+            padding: {_SLIDER_PADDING};
             border-radius: 3px;
         }}
         QWidget#sidebar_container QPushButton:hover {{
@@ -118,8 +126,8 @@ def build_sidebar(
             width: 12px;
             height: 12px;
             border-radius: 6px;
-            margin: -4px 0;
+            margin: {_SLIDER_MARGIN};
         }}
     """)
 
-    return sidebar
+    return sidebar, gated_buttons

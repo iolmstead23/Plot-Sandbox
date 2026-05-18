@@ -9,7 +9,7 @@ from .weights import recompute_weights_from_degree
 _rng = np.random.default_rng()
 
 
-def add_random_node(app) -> None:
+def add_random_node(_app) -> None:
     sim = config.simulation
     direction = _rng.normal(size=sim.dims)
     direction /= np.linalg.norm(direction) + 1e-12

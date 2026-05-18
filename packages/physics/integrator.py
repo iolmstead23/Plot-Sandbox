@@ -17,6 +17,7 @@ from ._force_attraction import pairwise_attraction
 from ._force_edge import edge_attraction
 from ._force_gravity import central_gravity
 from ._force_repulsion import pairwise_repulsion
+from ._forces_gpu_fused import relax_step_fused_gpu
 
 
 def relax_step(
@@ -30,6 +31,19 @@ def relax_step(
     params: dict,
 ) -> np.ndarray:
     xp = get_module(positions)
+
+    # GPU + 3-D + edges present: single CUDA kernel handles all forces and
+    # integration in one launch, eliminating ~40 CuPy kernel-dispatch calls.
+    if (
+        xp is not np
+        and positions.shape[1] == 3
+        and edges is not None
+    ):
+        return relax_step_fused_gpu(
+            positions, weights, pinned,
+            edges=edges, dt=dt, temperature=temperature, params=params,
+        )
+
     p = params
 
     if edges is not None and edges.shape[0] > 0:
@@ -62,6 +76,9 @@ def relax_step(
             k_r=p["k_repel"],
             soft_core_radius=p["soft_core_radius"],
             cutoff=p.get("repulsion_cutoff", 0.0),
+            bh_threshold=p["bh_threshold"],
+            bh_theta=p["bh_theta"],
+            cpu_sparse_threshold=p.get("cpu_sparse_threshold", 150),
         )
         + attract
     )

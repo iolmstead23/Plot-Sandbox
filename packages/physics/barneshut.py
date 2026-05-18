@@ -1,7 +1,8 @@
 """Barnes-Hut O(N log N) repulsion via Numba-JIT octree — CPU only.
 
-Activated from forces.py when N >= BH_THRESHOLD, Numba is available, and
-the CPU path is active.  The GPU chunked path handles GPU workloads.
+Activated from forces.py when N >= config.physics.bh_threshold, Numba is
+available, and the CPU path is active.  The GPU chunked path handles GPU
+workloads.
 
 Algorithm
 ---------
@@ -22,8 +23,6 @@ from __future__ import annotations
 
 import numpy as np
 
-BH_THRESHOLD: int = 5000   # activate when N >= this on CPU path
-BH_THETA: float   = 0.7    # opening criterion — larger is faster, less exact
 _MAX_NODES_FACTOR = 8      # pre-allocate 8 * N octree nodes
 _MAX_DEPTH        = 64     # recursion guard
 _MAX_STACK        = 1024   # DFS stack depth per particle
@@ -54,7 +53,7 @@ def repulsion(
     *,
     k_r: float,
     soft_core_radius: float,
-    theta: float = BH_THETA,
+    theta: float,
 ) -> np.ndarray:
     """Return (N, 3) repulsive forces, O(N log N).  Requires Numba and D=3."""
     if not available():

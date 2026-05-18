@@ -1,3 +1,5 @@
+from typing import Any
+
 from packages.config import config
 
 from .dom import add_random_node, remove_random_node, seed_physics_dom
@@ -7,7 +9,7 @@ from .tick import physics_tick
 from .tick import thread as _tick_thread
 
 
-def reseed_handler(app) -> None:
+def reseed_handler(app: Any) -> None:
     reseed(
         app,
         stop_fn=_tick_thread.stop,
@@ -17,8 +19,8 @@ def reseed_handler(app) -> None:
 
 BUTTON_HANDLERS = [
     ("New Sim",   reseed_handler),
-    ("Add Node",  add_random_node),
-    ("Remove",    remove_random_node),
+    ("Add Node",  add_random_node,    True),  # gated: disabled until converged
+    ("Remove",    remove_random_node, True),  # gated: disabled until converged
 ]
 
 __all__ = [

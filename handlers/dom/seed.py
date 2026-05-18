@@ -37,11 +37,12 @@ def seed_physics_dom(rng: np.random.Generator) -> None:
 
     positions = initial_layout(
         weights,
-        view_range=config.view.view_range,
+        view_range=config.render.view_range,
         rng=rng,
         inner_radius_fraction=sim.inner_radius_fraction,
         outer_radius_fraction=sim.outer_radius_fraction,
         dims=sim.dims,
+        layout_noise=sim.layout_noise,
     )
 
     for i in range(n):

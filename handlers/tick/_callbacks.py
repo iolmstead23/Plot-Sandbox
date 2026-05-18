@@ -6,7 +6,11 @@ from ..state import app as app_state, temperature
 
 
 def _on_dom_change(_dom) -> None:
-    temperature.reset()
+    # Warm reheat: only boost temperature if it has cooled below the mutation
+    # threshold. Avoids discarding all cooling progress from structural tweaks.
+    temperature.partial_reset(config.physics.mutation_reheat_factor)
+    from handlers.velocimetry import reset as _vel_reset  # Lazy import avoids circular ref at load time.
+    _vel_reset()
     # Lazy import avoids a circular reference at load time.
     from . import thread as _thread
     _thread.reheat()

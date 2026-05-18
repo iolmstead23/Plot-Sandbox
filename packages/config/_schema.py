@@ -1,8 +1,10 @@
-# Maps each key to its expected Python type(s). Lists validated separately.
+# Maps each key to its expected Python type(s).
+# Nested dicts indicate a sub-section where each leaf maps to a type.
+# Lists and special constraints are validated separately in _loader._validate.
 _SCHEMA: dict = {
     "physics": {
-        "k_central": (int, float),
-        "k_repel": (int, float),
+        "gravity_ratio": (int, float),
+        "repel_ratio": (int, float),
         "k_attract": (int, float),
         "soft_core_radius": (int, float),
         "max_step": (int, float),
@@ -14,6 +16,10 @@ _SCHEMA: dict = {
         "k_edge": (int, float),
         "edge_rest_length": (int, float),
         "repulsion_cutoff": (int, float),
+        "bh_threshold": int,
+        "bh_theta": (int, float),
+        "mutation_reheat_factor": (int, float),
+        "cpu_sparse_threshold": int,
     },
     "simulation": {
         "node_count": int,
@@ -25,6 +31,8 @@ _SCHEMA: dict = {
         "dims": int,
         "max_degree": int,
         "use_gpu": bool,
+        "layout_noise": (int, float),
+        "gpu_memory_pool_gb": (int, float),
     },
     "tick": {
         "dt": (int, float),
@@ -32,17 +40,19 @@ _SCHEMA: dict = {
         "interval_ms": int,
         "render_every": int,
         "physics_substeps": int,
+        "cuda_device": int,
+        "headless_progress_interval": (int, float),
+        "headless_max_ticks": int,
     },
-    "view": {
-        "elev": (int, float),
-        "azim": (int, float),
+    "render": {
+        "camera_elev": (int, float),
+        "camera_azim": (int, float),
         "view_range": (int, float),
-    },
-    "plot": {
+        "camera_distance": (int, float),
         "title": str,
         "size_scale": (int, float),
-    },
-    "dom": {
+        "node_size_min": (int, float),
+        "node_size_max": (int, float),
         "weight_to_size": (int, float),
     },
     "ui": {
@@ -50,5 +60,19 @@ _SCHEMA: dict = {
         "geometry": str,
         "button_padx": int,
         "button_pady": int,
+    },
+    "velocimetry": {
+        "enabled": bool,
+        "output_path": str,
+        "save_csv": bool,
+        "save_npz": bool,
+        "plot_on_convergence": bool,
+        "max_frames": int,
+    },
+    # Nested: each value is itself a dict of {field: type}.
+    "sliders": {
+        "gravity_ratio": {"min": (int, float), "max": (int, float), "step": (int, float)},
+        "repel_ratio":   {"min": (int, float), "max": (int, float), "step": (int, float)},
+        "k_edge":        {"min": (int, float), "max": (int, float), "step": (int, float)},
     },
 }

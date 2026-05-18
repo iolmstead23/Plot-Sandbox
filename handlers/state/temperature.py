@@ -13,6 +13,14 @@ def reset() -> None:
     _value = config.physics.initial_temperature
 
 
+def partial_reset(factor: float) -> None:
+    """Boost temperature to factor × initial_temperature if currently below that."""
+    global _value
+    target = config.physics.initial_temperature * factor
+    if _value < target:
+        _value = target
+
+
 def step() -> float:
     global _value
     _value = cool(

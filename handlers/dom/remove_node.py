@@ -8,7 +8,7 @@ from .weights import recompute_weights_from_degree
 _rng = np.random.default_rng()
 
 
-def remove_random_node(app) -> None:
+def remove_random_node(_app) -> None:
     ids = dom.ids()
     if not ids:
         return

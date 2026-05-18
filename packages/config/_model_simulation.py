@@ -12,3 +12,5 @@ class SimulationConfig:
     dims: int
     max_degree: int = 6
     use_gpu: bool = True
+    layout_noise: float = 1.0
+    gpu_memory_pool_gb: float = 4.0
