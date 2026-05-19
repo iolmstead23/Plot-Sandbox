@@ -19,7 +19,7 @@ from packages.dom import dom
 from packages.physics import setup_backend
 from packages.plot import build_vispy_scene, project_to_3d
 from packages.state import state
-from packages.ui import launch
+from packages.ui import SliderSpec, launch
 
 from handlers import (
     BUTTON_HANDLERS,
@@ -31,6 +31,65 @@ from handlers import (
 from handlers.headless import run_headless
 from handlers.sweep import run_sweep
 from handlers.sweep.params import FIXED as SWEEP_FIXED
+
+_SLIDER_KEYS: tuple[str, ...] = ("gravity_ratio", "repel_ratio", "k_edge")
+
+
+def _list_gpus() -> None:
+    try:
+        import pynvml  # type: ignore[import-untyped]
+
+        pynvml.nvmlInit()
+        count = pynvml.nvmlDeviceGetCount()
+        for i in range(count):
+            h = pynvml.nvmlDeviceGetHandleByIndex(i)
+            name = pynvml.nvmlDeviceGetName(h)
+            mem = pynvml.nvmlDeviceGetMemoryInfo(h)
+            print(
+                f"  [{i}] {name}  "
+                f"({int(mem.free)//1024**2} / {int(mem.total)//1024**2} MB free)"
+            )
+    except Exception:
+        try:
+            import cupy as cp  # type: ignore[import-untyped]
+
+            count = cp.cuda.runtime.getDeviceCount()
+            for i in range(count):
+                props = cp.cuda.runtime.getDeviceProperties(i)
+                print(
+                    f"  [{i}] {props['name'].decode()}  "
+                    f"({int(props['totalGlobalMem'])//1024**2} MB total)"
+                )
+        except Exception:
+            print("No CUDA devices found or CuPy/pynvml not available.")
+
+
+def _apply_overrides(args: argparse.Namespace) -> None:
+    if args.cuda_device is not None:
+        config.tick.cuda_device = args.cuda_device
+        config.simulation.use_gpu = True
+    if args.gpu:
+        config.simulation.use_gpu = True
+    if args.cpu:
+        config.simulation.use_gpu = False
+
+    _overrides: list[tuple[object, str, str]] = [
+        (config.simulation, "node_count", "node_count"),
+        (config.simulation, "dims", "dims"),
+        (config.simulation, "weight_min", "weight_min"),
+        (config.simulation, "weight_max", "weight_max"),
+        (config.simulation, "max_degree", "max_degree"),
+        (config.physics, "gravity_ratio", "gravity_ratio"),
+        (config.physics, "repel_ratio", "repel_ratio"),
+        (config.physics, "k_edge", "k_edge"),
+        (config.physics, "initial_temperature", "initial_temp"),
+        (config.physics, "cooling_factor", "cooling_factor"),
+        (config.tick, "dt", "dt"),
+    ]
+    for cfg_obj, cfg_attr, args_attr in _overrides:
+        value = getattr(args, args_attr, None)
+        if value is not None:
+            setattr(cfg_obj, cfg_attr, value)
 
 
 def main() -> None:
@@ -163,78 +222,29 @@ def main() -> None:
     # Sweep mode: build fixed dict from SWEEP_FIXED + CLI overrides, dispatch, and exit.
     # No GPU init needed here — each subprocess calls setup_backend for itself.
     if args.sweep:
-        fixed = {**SWEEP_FIXED}
-        if args.output_dir is not None:
-            fixed["--output-dir"] = args.output_dir
-        if args.max_ticks is not None:
-            fixed["--max-ticks"] = str(args.max_ticks)
-        if args.seed is not None:
-            fixed["--seed"] = str(args.seed)
-        if args.node_count is not None:
-            fixed["--node-count"] = str(args.node_count)
+        fixed = {
+            **SWEEP_FIXED,
+            **{
+                k: str(v)
+                for k, v in {
+                    "--output-dir": args.output_dir,
+                    "--max-ticks": args.max_ticks,
+                    "--seed": args.seed,
+                    "--node-count": args.node_count,
+                }.items()
+                if v is not None
+            },
+        }
         run_sweep(fixed, args)
         sys.exit(0)
 
     # --list-gpus: enumerate CUDA devices and exit
     if args.list_gpus:
-        try:
-            import pynvml  # type: ignore[import-untyped]
-
-            pynvml.nvmlInit()
-            count = pynvml.nvmlDeviceGetCount()
-            for i in range(count):
-                h = pynvml.nvmlDeviceGetHandleByIndex(i)
-                name = pynvml.nvmlDeviceGetName(h)
-                mem = pynvml.nvmlDeviceGetMemoryInfo(h)
-                print(
-                    f"  [{i}] {name}  ({int(mem.free)//1024**2} / {int(mem.total)//1024**2} MB free)"
-                )
-        except Exception:
-            try:
-                import cupy as cp  # type: ignore[import-untyped]
-
-                count = cp.cuda.runtime.getDeviceCount()
-                for i in range(count):
-                    props = cp.cuda.runtime.getDeviceProperties(i)
-                    print(
-                        f"  [{i}] {props['name'].decode()}  "
-                        f"({int(props['totalGlobalMem'])//1024**2} MB total)"
-                    )
-            except Exception:
-                print("No CUDA devices found or CuPy/pynvml not available.")
+        _list_gpus()
         sys.exit(0)
 
     # Apply config overrides before setup_backend reads use_gpu
-    if args.cuda_device is not None:
-        config.tick.cuda_device = args.cuda_device
-        config.simulation.use_gpu = True
-    if args.gpu:
-        config.simulation.use_gpu = True
-    if args.cpu:
-        config.simulation.use_gpu = False
-
-    if args.node_count is not None:
-        config.simulation.node_count = args.node_count
-    if args.dims is not None:
-        config.simulation.dims = args.dims
-    if args.gravity_ratio is not None:
-        config.physics.gravity_ratio = args.gravity_ratio
-    if args.repel_ratio is not None:
-        config.physics.repel_ratio = args.repel_ratio
-    if args.k_edge is not None:
-        config.physics.k_edge = args.k_edge
-    if args.initial_temp is not None:
-        config.physics.initial_temperature = args.initial_temp
-    if args.cooling_factor is not None:
-        config.physics.cooling_factor = args.cooling_factor
-    if args.dt is not None:
-        config.tick.dt = args.dt
-    if args.weight_min is not None:
-        config.simulation.weight_min = args.weight_min
-    if args.weight_max is not None:
-        config.simulation.weight_max = args.weight_max
-    if args.max_degree is not None:
-        config.simulation.max_degree = args.max_degree
+    _apply_overrides(args)
 
     setup_backend(
         config.simulation.use_gpu,
@@ -272,32 +282,17 @@ def main() -> None:
         node_size_max=config.render.node_size_max,
     )
 
-    _sr = config.sliders
-    sliders = [
+    sr = config.sliders
+    sliders: list[SliderSpec] = [
         (
-            "gravity_ratio",
-            config.physics.gravity_ratio,
-            _sr.gravity_ratio.min,
-            _sr.gravity_ratio.max,
-            _sr.gravity_ratio.step,
-            make_force_slider_callback("gravity_ratio", reseed_fn=reseed_handler),
-        ),
-        (
-            "repel_ratio",
-            config.physics.repel_ratio,
-            _sr.repel_ratio.min,
-            _sr.repel_ratio.max,
-            _sr.repel_ratio.step,
-            make_force_slider_callback("repel_ratio", reseed_fn=reseed_handler),
-        ),
-        (
-            "k_edge",
-            config.physics.k_edge,
-            _sr.k_edge.min,
-            _sr.k_edge.max,
-            _sr.k_edge.step,
-            make_force_slider_callback("k_edge", reseed_fn=reseed_handler),
-        ),
+            key,
+            getattr(config.physics, key),
+            getattr(sr, key).min,
+            getattr(sr, key).max,
+            getattr(sr, key).step,
+            make_force_slider_callback(key, reseed_fn=reseed_handler),
+        )
+        for key in _SLIDER_KEYS
     ]
 
     launch(

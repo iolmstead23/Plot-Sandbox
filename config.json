@@ -19,7 +19,7 @@
     "cpu_sparse_threshold": 150
   },
   "simulation": {
-    "node_count": 25000,
+    "node_count": 10000,
     "weight_min": 1.0,
     "weight_max": 50.0,
     "spawn_distance": 2.0,
