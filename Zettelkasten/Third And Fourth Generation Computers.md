@@ -1,0 +1,11 @@
+### Third Generation: Integrated Circuits (1965–1971)
+
+The invention of integrated circuits enabled the development of [[computer]] systems that were cheaper, faster, smaller, and more reliable. Integrated circuits miniaturized transistors and placed them on silicon chips called semiconductors.
+
+Users interacted with third-generation computers using keyboards and monitors that communicated with the other components of the [[hardware]] and operating systems. Operating systems made it possible for computers to run multiple applications at the same time and to share memory and other resources. The computational time was reduced from milliseconds to nanoseconds. While integrated circuits increased computing power, they were complicated to manufacture, difficult to maintain, and required air conditioning to keep the computers cool enough to run. Examples of third-generation computers include the PDP-8, PDP-11, ICL 2900, IBM 360, and IBM 370.
+
+### Fourth Generation: Microprocessors (1971–Present)
+
+Microprocessors include thousands of integrated circuits on a single silicon chip. They created the fourth generation of computers. This generation of computers is characterized by a significant reduction in processor size and, at the same time, a significant increase in capabilities. The Intel 4004 chip, developed in 1971, included all the components of the [[computer]] on a single chip. It powered the Busicom calculator and paved the way for the personal [[computer]]. The first IBM [[computer]] for home use was available in 1981, followed by Apple’s Macintosh [[computer]] in 1984. Fourth-generation computers also saw the development of graphical user interfaces, the mouse, and handheld devices. Several operating systems, such as MS-DOS and Microsoft [[Windows]], were developed during this time period.
+
+Fourth-generation computers are more reliable than their predecessors, calculate in picoseconds (one trillionth of a second), use high-level languages, and are portable and economical.

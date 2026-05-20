@@ -1,0 +1,1 @@
+Android is a mobile [[operating system]] that is open-sourced, which allows original equipment manufacturers (OEM) to customize the Android source code to fit their devices. At the time of this writing, this mobile [[operating system]] has the largest user base.

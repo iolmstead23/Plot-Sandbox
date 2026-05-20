@@ -1,0 +1,1 @@
+CAT5e is the minimum grade of cable necessary to reach speeds of 1 Gbps.

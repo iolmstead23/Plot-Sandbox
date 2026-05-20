@@ -1,0 +1,1 @@
+_**Cloud databases**_ are optimized to work in a cloud environment. Some practical benefits include the ability to increase resources to accommodate for demands on the system, to be highly available even in the case of local or regional outages, and to support SaaS ([[software]] as a service) cloud deployments.

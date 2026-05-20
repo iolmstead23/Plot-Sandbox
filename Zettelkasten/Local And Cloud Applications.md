@@ -1,0 +1,3 @@
+Local applications are [[Application Software|application software]] stored on individual computers. Local applications are mostly found on personal machines, as they are often impractical for large organizations.
+
+Cloud computing delivers services, including computing, storage, databases, [[Networks|networks]], [[Software|software]], analytics, and intelligence, thus offloading infrastructure resource requirements to the cloud service provider. Cloud applications, or cloud apps, are [[software]] units where cloud-based and local components work together to perform tasks.

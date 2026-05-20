@@ -1,0 +1,1 @@
+macOS is developed by Apple, Inc. (Apple). Like Microsoft, Apple’s operating systems are closed-source and designed to only run on Apple [[hardware]]. macOS is known for its media editing and graphic rendering capabilities and it’s ability to integrate with other Apple products.

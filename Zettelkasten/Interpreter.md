@@ -1,0 +1,5 @@
+Interpreters translate and execute source code into machine language one line at a time. If the [[Interpreter|interpreter]] finds an error, the process is terminated at the statement containing the error and displays an error message. The error must be resolved before the interpreter continues to the next line. Interpreters convert instructions one statement at a time when the program is run. Perl and Python execute using interpreters.  
+  
+**Python, PHP, JavaScript, Ruby** etc., are common interpreted or scripted languages using interpreters for translation into machine code.
+
+One significant advantage of an interpreter is that you can run a single line of code and see its output, whereas, in the case of a [[Compiler|compiler]], you need first to compile the whole code and then run it after all errors are fixed.

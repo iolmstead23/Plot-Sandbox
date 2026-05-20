@@ -1,0 +1,7 @@
+COBOL, which stands for Common Business-Oriented Language, is a high-level [[Programming Language|programming language]] primarily used in business, finance, and administrative systems. It was developed in the late 1950s and early 1960s, with the aim of creating a [[programming language]] that could handle the complex [[data]] processing requirements of large-scale business applications.
+
+COBOL is known for its English-like syntax, making it easy for business professionals and programmers to understand and work with. It was designed to support [[data]] processing tasks such as file handling, record sorting, and report generation, which are common in business environments.
+
+Throughout its history, COBOL has been widely adopted by organizations around the world for a variety of business-critical applications. It has been used in areas such as banking, insurance, retail, government, and telecommunications to develop systems for tasks like payroll processing, inventory management, customer relationship management, and billing.
+
+One of the key strengths of COBOL is its robustness and reliability, which has made it a popular choice for mission-critical systems that require high levels of stability and scalability. Despite being an older language, COBOL continues to be actively used in many legacy systems, and it remains an integral part of the IT infrastructure for numerous organizations globally.

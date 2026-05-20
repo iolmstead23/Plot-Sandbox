@@ -1,0 +1,3 @@
+Relational databases contain [[database]] tables that can be joined together in logical ways. Because [[data]] is stored in relational tables, each record has a unique identifier, such as a product identification number or user name. This unique identifier, referred to as a primary key, creates the relationship among tables. A field may be marked as the primary key on one table but also be found on another table. When this happens, a relationship called a foreign key is created. 
+
+The role of some attributes is to interrelate tables in a way that establishes meaningful relationships relating to their real-world interactions.

@@ -1,0 +1,7 @@
+The **Power Rule** is a quick method for finding the [[Derivative|derivative]] of functions in the form $f(x) = x^n$, where $n$ is any real number. The rule states that for $f(x) = x^n$, the [[Derivative|derivative]] $f'(x) = n \cdot x^{n-1}$. In other words, multiply by the exponent, then reduce the exponent by one. For example, the [[derivative]] of $x^3$ is $3x^2$.
+
+In **[[Algebra]]**, the [[Power Rule]] primarily deals with simplifying expressions by applying exponent rules, which helps prepare for [[Differentiation|differentiation]] in [[Calculus|calculus]].
+
+In **[[Calculus]]**, the Power Rule is foundational in **differential [[calculus]]**, enabling quick calculations of derivatives in [[polynomial]] functions and laying groundwork for more complex rules (e.g., Product, Quotient, Chain Rules). Early mathematicians like **[[Gottfried Wilhelm Leibniz|Leibniz]]** and **[[Isaac Newton|Newton]]** contributed to the formalization of [[calculus]] in the 17th century, and the [[power rule|Power Rule ]]became an essential shortcut within their broader work on rates of change.
+
+This rule is widely applied in physics, engineering, and economics to solve rate problems and optimize processes, making it a key concept for those fields.

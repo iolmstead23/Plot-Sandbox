@@ -1,0 +1,8 @@
+  
+FORTRAN, which stands for Formula Translation, is one of the oldest high-level [[programming language]]s designed specifically for numerical and scientific computing. Developed in the 1950s by IBM, it quickly became the language of choice for scientists, engineers, and researchers due to its efficiency in handling complex [[mathematics|mathematical]] computations.
+
+FORTRAN's primary strength lies in its ability to efficiently perform numerical calculations and manipulate arrays, making it well-suited for scientific and engineering applications. Its syntax is designed to closely resemble mathematical notation, making it intuitive for scientists to express complex mathematical [[Algorithm|algorithms]] in code.
+
+Throughout its history, FORTRAN has been widely used in a variety of scientific disciplines, including physics, astronomy, engineering, and meteorology. It has been used to develop simulations, mathematical models, [[data]] analysis tools, and numerical methods for solving differential equations, among other applications.
+
+FORTRAN has evolved over the years, with newer versions introducing features to improve performance, readability, and portability. Despite the emergence of newer programming languages, FORTRAN remains popular in scientific computing due to its long-standing legacy, extensive library of mathematical functions, and [[optimization]] capabilities tailored for numerical calculations.
