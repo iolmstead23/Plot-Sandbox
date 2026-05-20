@@ -1,0 +1,1 @@
+Coax cable can broadcast in both baseband and broadband modes.

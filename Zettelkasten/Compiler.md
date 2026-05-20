@@ -1,0 +1,3 @@
+A Compiler translates source code into machine language. A compiler checks source code for errors before translating. If the source code is found to have errors, the compiler specifies the errors. Errors must be resolved (also known as debugged) before the compiler can successfully recompile the source code. C, C++, C#, and Java programs need compilers to execute.
+
+**Java, C++, C#**, etc., are some commonly used high-level programming languages using a compiler for translation into machine code. Compiled languages are also known as programming languages. A compiler takes all instructions written in the program and translates it all at once into machine code. Errors are output after the compiling process is complete.

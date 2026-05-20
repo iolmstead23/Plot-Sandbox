@@ -1,0 +1,1 @@
+[[Software]] that people use to complete daily tasks is called productivity [[software]]. Productivity [[software]] is used to complete tasks such as writing documents, managing personal [[information]], giving presentations, and storing [[data]].

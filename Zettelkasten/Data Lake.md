@@ -1,0 +1,1 @@
+A _**[[Data]]]lake**_ is a system of [[data]] stored in raw format. It is usually a single store of all enterprise [[data]] as well as [[information]] derived from [[data]] during reporting, transactions, or other activities. Data lakes can include both structured [[data]], such as tables, and unstructured [[data]], such as audio and video recordings.

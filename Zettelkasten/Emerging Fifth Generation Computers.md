@@ -1,0 +1,11 @@
+### Artificial Intelligence
+
+The fifth generation started in the early 1980s when microprocessor chips were able to accommodate tens of millions of electronic components using ultra-large-scale integration (ULSI). These computers are based on parallel processing (multiple programs running concurrently) and artificial intelligence (AI) [[Software|software]]. They support the development of artificial intelligence and natural language processing while using principles of robotics, neural [[Networks|networks]], expert systems, and natural language understanding and generation.
+
+Quantum computing, molecular technology, and nanotechnology are expected to significantly contribute to the abilities of fifth-generation computers. Fifth-generation computing devices will be able to respond to natural language input and are capable of learning. Emerging technologies may advance computers in unimaginable directions. Research efforts and experiments coupled with emerging technologies provide glimpses into the computers of the future.
+### Quantum Computing
+
+Quantum computing is the study of a non-classical model of computation. It is said to be more efficient than modern computing through the use of quantum tunneling. Quantum computers are expected to reduce power consumption from 100 to 1,000 times and will allow computing to surpass any and all limits that traditional computing has set.
+### Nanotechnology
+
+Nanotechnology and molecular manufacturing involves the use of nanoscale (extremely small) tools and nonbiological processes to build structures, devices, and systems at the molecular level. It is a technology based on the ability to build structures to complex, atomic specifications by means of mechanosynthesis, or reaction outcomes determined by the use of mechanical constraints. Nanotechnology is a very diverse field, which is having a bigger and bigger impact on the world. It has applications in medicine, cars, spacecraft, food, electronics, and materials science just to name a few.

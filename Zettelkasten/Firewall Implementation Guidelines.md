@@ -1,0 +1,5 @@
+**What it pertains to:** This note defines firewall implementation as a systematic process for configuring [[Hardware]] or [[Software]] devices to monitor and control [[Networks|network]] traffic based on predefined security rules. It details practical implementation steps including rule configuration, port management, and traffic analysis.
+
+**How it's used:** Practically, it provides step-by-step guidance for deploying firewalls at [[Networks|network]] boundaries, creating access control lists, managing port restrictions, and implementing packet filtering. It would cover specific settings needed for both basic perimeter security and advanced segmentation.
+
+**Why it's important:** Firewalls are a fundamental security measure that serve as the first line of defense against unauthorized access to [[Networks|network]] resources. Implementing them correctly prevents malware propagation, blocks malicious traffic, and limits the impact of potential breaches. Proper firewall configuration is critical because incorrectly set rules can create security gaps that attackers exploit.

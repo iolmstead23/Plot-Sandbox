@@ -1,0 +1,5 @@
+A Graphical [[User Interface]] (GUI) is a type of interface that allows users to interact with electronic devices or [[Software|software]] through graphical elements such as icons, buttons, [[Windows|windows]], and menus, rather than using text-based commands. GUIs provide users with a visual representation of the system's functionality, making it easier to navigate and interact with complex systems.
+
+In a GUI, users can perform tasks by clicking on graphical elements with a mouse or tapping on a touchscreen device, rather than memorizing and typing commands. GUIs typically include visual feedback, such as animations or changes in appearance, to indicate that an action has been performed or to provide feedback on the system's status.
+
+GUIs are widely used in modern computing devices, including personal computers, smartphones, tablets, and smart TVs. They have become the standard interface for most [[software]] applications, allowing users to perform a wide range of tasks, from browsing the internet and editing documents to playing games and managing files, in a user-friendly and intuitive manner.

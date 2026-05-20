@@ -1,0 +1,9 @@
+**Gottfried Wilhelm Leibniz (1646-1716)** was a German mathematician, philosopher, and polymath known for his significant contributions to [[Mathematics|mathematics]], logic, and the sciences. He is most famous for developing [[Calculus|calculus]] independently of [[Isaac Newton]], although he introduced a different notation system that has become the standard in [[mathematics]] today.
+
+Leibniz’s notation for [[calculus]] included the [[integral]] sign $\int$ and the differential notation $d$, which provides a clear and systematic way to express rates of change and areas under curves. His work laid the foundation for modern mathematical analysis and [[calculus]], emphasizing the importance of the infinitesimal and the concept of continuity.
+
+In addition to [[calculus]], Leibniz made substantial contributions to philosophy, logic, and the development of mechanical calculators. He envisioned a universal language of science and [[mathematics]], which he referred to as a "characteristica universalis," a precursor to modern symbolic logic and [[computer]] science.
+
+Leibniz’s relationship with [[Isaac Newton]] is marked by a contentious dispute over the invention of [[calculus]]. While both men developed the fundamental concepts of [[calculus]] independently, their differing approaches and notations led to a bitter rivalry. [[Isaac Newton|Newton]]'s method, known as "fluxions," focused on the concept of motion, while Leibniz’s approach emphasized a more formal mathematical structure.
+
+The conflict escalated into accusations of plagiarism, with both sides claiming precedence. This dispute not only affected their personal relationship but also had lasting implications for the history of [[mathematics]]. Despite the controversy, both men are credited as co-founders of [[calculus]], and their contributions have had an enduring impact on [[mathematics]] and science.

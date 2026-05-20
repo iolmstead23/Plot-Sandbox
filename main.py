@@ -26,11 +26,12 @@ from handlers import (
     make_force_slider_callback,
     physics_tick,
     reseed_handler,
-    seed_physics_dom,
 )
 from handlers.headless import run_headless
 from handlers.sweep import run_sweep
 from handlers.sweep.params import FIXED as SWEEP_FIXED
+from handlers.dom.seed_zettelkasten import seed_from_zettelkasten
+from handlers.state import zettelkasten_path as _zk_path
 
 _SLIDER_KEYS: tuple[str, ...] = ("gravity_ratio", "repel_ratio", "k_edge")
 
@@ -217,6 +218,12 @@ def main() -> None:
     parser.add_argument(
         "--list-gpus", action="store_true", help="Print available CUDA devices and exit"
     )
+    parser.add_argument(
+        "--zettelkasten",
+        metavar="PATH",
+        default="Zettelkasten",
+        help="Path to Zettelkasten folder of markdown files (default: Zettelkasten)",
+    )
     args = parser.parse_args()
 
     # Sweep mode: build fixed dict from SWEEP_FIXED + CLI overrides, dispatch, and exit.
@@ -243,6 +250,13 @@ def main() -> None:
         _list_gpus()
         sys.exit(0)
 
+    # Validate Zettelkasten path before GPU init so we fail fast with a clear message.
+    from pathlib import Path as _Path
+    _zk_dir = _Path(args.zettelkasten)
+    if not _zk_dir.is_dir() or not any(_zk_dir.rglob('*.md')):
+        sys.exit(f"error: no markdown files found in '{args.zettelkasten}' — Zettelkasten notes are required")
+    _zk_path.path = args.zettelkasten
+
     # Apply config overrides before setup_backend reads use_gpu
     _apply_overrides(args)
 
@@ -259,13 +273,14 @@ def main() -> None:
             args.output_dir or "output",
             rng,
             args.max_ticks or config.tick.headless_max_ticks,
+            seed_fn=lambda rng: seed_from_zettelkasten(args.zettelkasten, rng),
         )
         sys.exit(0)
 
     dom.weight_to_size = config.render.weight_to_size
     dom.dims = config.simulation.dims
 
-    seed_physics_dom(rng)
+    seed_from_zettelkasten(args.zettelkasten, rng)
 
     scene_objects = build_vispy_scene(
         project_to_3d(dom.positions),

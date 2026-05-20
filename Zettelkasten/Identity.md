@@ -1,0 +1,1 @@
+An equation is called an identity if the equation holds for all values for which the expressions in the equation are well defined.

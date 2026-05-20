@@ -6,15 +6,20 @@ from packages.config import config
 from packages.dom import dom
 from packages.plot import project_to_3d, update_vispy_scene
 
-from .dom import seed_physics_dom
 from .state import temperature
 
 
-def reseed(app: Any, *, stop_fn: Callable[[], None], start_fn: Callable) -> None:
+def reseed(
+    app: Any,
+    *,
+    stop_fn: Callable[[], None],
+    start_fn: Callable,
+    seed_fn: Callable[[np.random.Generator], None],
+) -> None:
     app.stop_tick()
     stop_fn()
     temperature.reset()  # full reset — _on_dom_change only does warm partial reheat
-    seed_physics_dom(np.random.default_rng())
+    seed_fn(np.random.default_rng())
 
     # Update the existing VisPy visuals in-place — no canvas rebuild needed.
     if app.artists is not None:

@@ -40,12 +40,15 @@ def _save_npz(run_dir: pathlib.Path, converged_at: int, T: float) -> pathlib.Pat
 
 
 def run_headless(
-    output_dir: str, rng: np.random.Generator, max_ticks: int = 50_000
+    output_dir: str,
+    rng: np.random.Generator,
+    max_ticks: int = 50_000,
+    seed_fn=None,
 ) -> None:
     run_dir = _make_run_dir(output_dir)
     dom.weight_to_size = config.render.weight_to_size
     dom.dims = config.simulation.dims
-    seed_physics_dom(rng)
+    (seed_fn or seed_physics_dom)(rng)
     temperature.reset()
 
     substeps = max(1, config.tick.physics_substeps)

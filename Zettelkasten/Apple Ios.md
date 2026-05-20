@@ -1,0 +1,1 @@
+This is the mobile [[operating system]] developed by Apple for use on proprietary Apple [[hardware]]. Apple regulates all mobile apps and services that can run on iOS.
