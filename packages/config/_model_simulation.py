@@ -14,3 +14,4 @@ class SimulationConfig:
     use_gpu: bool = True
     layout_noise: float = 1.0
     gpu_memory_pool_gb: float = 4.0
+    layout_strategy: str = "bfs_landmark"

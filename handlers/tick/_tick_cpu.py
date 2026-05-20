@@ -12,7 +12,7 @@ from packages.plot import project_to_3d, update_vispy_scene
 
 from . import _params
 from .. import stats as _stats
-from ..state import temperature
+from ..state import node_temperature, temperature
 from ..velocimetry import on_converged as _vel_converged, record_tick as _vel_record
 
 _total_steps: int = 0
@@ -37,12 +37,18 @@ def tick(app: Any, render_counter: int) -> bool:
         pinned    = to_device(dom.pinned)
         edges     = to_device(dom.edges)
 
+        heat = node_temperature.get_array()
+        if heat.shape[0] != dom.n:
+            node_temperature.init(dom.n)
+            heat = node_temperature.get_array()
+
         proposed = relax_step(
             positions, weights, pinned,
             edges=edges,
             dt=config.tick.dt,
             temperature=temperature.get(),
             params=_params.build(),
+            node_heat=heat,
         )
 
         new_positions = to_numpy(proposed)
@@ -52,6 +58,7 @@ def tick(app: Any, render_counter: int) -> bool:
         app.set_converged(converged)
         dom._set_positions(new_positions)
         temperature.step()
+        node_temperature.decay(config.physics.cooling_factor)
         _vel_record(dom.positions, temperature.get())
         if converged:
             _vel_converged()

@@ -1,22 +1,23 @@
 {
   "physics": {
     "gravity_ratio": 0.001,
-    "repel_ratio": 0.004,
+    "repel_ratio": 0.05,
     "k_attract": 0.5,
     "soft_core_radius": 0.6,
     "max_step": 0.4,
     "F_max": 200.0,
     "focus": [0.0, 0.0, 0.0],
     "initial_temperature": 1.0,
-    "cooling_factor": 0.999,
+    "cooling_factor": 0.9995,
     "min_temperature": 0.0001,
-    "k_edge": 0.0001,
+    "k_edge": 0.15,
     "edge_rest_length": 5.0,
     "repulsion_cutoff": 3.0,
     "bh_threshold": 5000,
     "bh_theta": 0.7,
     "mutation_reheat_factor": 0.05,
-    "cpu_sparse_threshold": 150
+    "cpu_sparse_threshold": 150,
+    "linlog_repulsion": true
   },
   "simulation": {
     "node_count": 10000,
@@ -29,7 +30,8 @@
     "max_degree": 10,
     "use_gpu": true,
     "layout_noise": 1.0,
-    "gpu_memory_pool_gb": 4.0
+    "gpu_memory_pool_gb": 4.0,
+    "layout_strategy": "bfs_landmark"
   },
   "tick": {
     "dt": 0.05,

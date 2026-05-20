@@ -20,6 +20,7 @@ _SCHEMA: dict = {
         "bh_theta": (int, float),
         "mutation_reheat_factor": (int, float),
         "cpu_sparse_threshold": int,
+        "linlog_repulsion": bool,
     },
     "simulation": {
         "node_count": int,
@@ -33,6 +34,7 @@ _SCHEMA: dict = {
         "use_gpu": bool,
         "layout_noise": (int, float),
         "gpu_memory_pool_gb": (int, float),
+        "layout_strategy": str,
     },
     "tick": {
         "dt": (int, float),

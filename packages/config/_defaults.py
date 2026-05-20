@@ -24,6 +24,7 @@ _DEFAULT_CONFIG: dict = {
         "bh_theta": 0.7,
         "mutation_reheat_factor": 0.05,
         "cpu_sparse_threshold": 150,
+        "linlog_repulsion": False,
     },
     "simulation": {
         "node_count": 2500,
@@ -37,6 +38,7 @@ _DEFAULT_CONFIG: dict = {
         "use_gpu": True,
         "layout_noise": 1.0,
         "gpu_memory_pool_gb": 4.0,
+        "layout_strategy": "bfs_landmark",
     },
     "tick": {
         "dt": 0.05,

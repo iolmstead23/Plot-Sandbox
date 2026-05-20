@@ -23,6 +23,7 @@ def pairwise_repulsion_sparse(
     k_r: float,
     soft_core_radius: float,
     cutoff: float,
+    linlog: bool = False,
 ) -> np.ndarray:
     """Sparse repulsion (CPU only): O(N log N + P) via scipy cKDTree."""
     from scipy.spatial import cKDTree  # type: ignore[attr-defined]
@@ -44,13 +45,25 @@ def pairwise_repulsion_sparse(
     d_sq = np.einsum("ij,ij->i", diff, diff)
     d_safe = np.sqrt(np.maximum(d_sq, 1e-12))
     direction = diff / d_safe[:, None]
-    mag = 1.0 / (d_sq + soft_core_radius * soft_core_radius)
-    mass_pair = weights[i_idx] * weights[j_idx]
-    f = (k_r * mag * mass_pair)[:, None] * direction  # (P, D)
 
-    for dim in range(d):
-        forces[:, dim] += np.bincount(i_idx, weights=f[:, dim], minlength=n)
-        forces[:, dim] -= np.bincount(j_idx, weights=f[:, dim], minlength=n)
+    if linlog:
+        sc2 = soft_core_radius * soft_core_radius
+        d_lin = np.sqrt(d_sq + sc2)
+        mag = 1.0 / d_lin
+        # Force on i from j uses w_j (radiating weight); force on j from i uses w_i.
+        f_i = (k_r * mag * weights[j_idx])[:, None] * direction
+        f_j = (k_r * mag * weights[i_idx])[:, None] * (-direction)
+        for dim in range(d):
+            forces[:, dim] += np.bincount(i_idx, weights=f_i[:, dim], minlength=n)
+            forces[:, dim] += np.bincount(j_idx, weights=f_j[:, dim], minlength=n)
+    else:
+        mag = 1.0 / (d_sq + soft_core_radius * soft_core_radius)
+        mass_pair = weights[i_idx] * weights[j_idx]
+        f = (k_r * mag * mass_pair)[:, None] * direction
+        for dim in range(d):
+            forces[:, dim] += np.bincount(i_idx, weights=f[:, dim], minlength=n)
+            forces[:, dim] -= np.bincount(j_idx, weights=f[:, dim], minlength=n)
+
     return forces
 
 

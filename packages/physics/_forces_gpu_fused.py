@@ -17,22 +17,28 @@ relax_step_fused_gpu  — drop-in replacement for the multi-kernel chain in
 import numpy as np
 
 from ._backend import get_module
-from ._kernel_src import _KERNEL_SRC
+from ._kernel_src import make_kernel_src
 
 # ---------------------------------------------------------------------------
-# Kernel handle — compiled once on first call, then reused
+# Kernel handles — compiled once per mode on first call, then reused
 # ---------------------------------------------------------------------------
 
-_kernel = None
+_kernel_standard = None
+_kernel_linlog = None
 _BLOCK = 128
 
 
-def _get_kernel():
-    global _kernel
-    if _kernel is None:
-        import cupy as cp
-        _kernel = cp.RawKernel(_KERNEL_SRC, "nbody_fused_step")
-    return _kernel
+def _get_kernel(linlog: bool = False):
+    global _kernel_standard, _kernel_linlog
+    import cupy as cp
+    if linlog:
+        if _kernel_linlog is None:
+            _kernel_linlog = cp.RawKernel(make_kernel_src(linlog=True), "nbody_fused_step")
+        return _kernel_linlog
+    else:
+        if _kernel_standard is None:
+            _kernel_standard = cp.RawKernel(make_kernel_src(linlog=False), "nbody_fused_step")
+        return _kernel_standard
 
 
 # ---------------------------------------------------------------------------
@@ -81,7 +87,8 @@ def relax_step_fused_gpu(
     grid    = (int(np.ceil(N / _BLOCK)),)
     block   = (_BLOCK,)
 
-    _get_kernel()(
+    linlog = bool(p.get("linlog_repulsion", False))
+    _get_kernel(linlog)(
         grid, block,
         (
             pos32, new_pos, w32, pin_u8, edges_i32,
