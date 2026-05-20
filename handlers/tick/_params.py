@@ -29,4 +29,5 @@ def build() -> dict:
         "bh_threshold": p.bh_threshold,
         "bh_theta": p.bh_theta,
         "cpu_sparse_threshold": p.cpu_sparse_threshold,
+        "linlog_repulsion": p.linlog_repulsion,
     }

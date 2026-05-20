@@ -4,6 +4,45 @@ Kept in its own module so _forces_gpu_fused.py stays under the line limit
 and the kernel text is easy to diff in isolation.
 """
 
+_REPULSION_STANDARD = """\
+    for (int j = 0; j < N; ++j) {
+        if (j == i) continue;
+        float dr0 = pi0 - pos[j*3+0];
+        float dr1 = pi1 - pos[j*3+1];
+        float dr2 = pi2 - pos[j*3+2];
+        float d2   = dr0*dr0 + dr1*dr1 + dr2*dr2;
+        if (cutoff2 > 0.0f && d2 > cutoff2) continue;
+        float mag  = k_r * wi * weights[j] / (d2 + sc2);
+        float invd = rsqrtf(d2 + 1e-9f);
+        f0 += mag * dr0 * invd;
+        f1 += mag * dr1 * invd;
+        f2 += mag * dr2 * invd;
+    }
+"""
+
+_REPULSION_LINLOG = """\
+    for (int j = 0; j < N; ++j) {
+        if (j == i) continue;
+        float dr0 = pi0 - pos[j*3+0];
+        float dr1 = pi1 - pos[j*3+1];
+        float dr2 = pi2 - pos[j*3+2];
+        float d2   = dr0*dr0 + dr1*dr1 + dr2*dr2;
+        if (cutoff2 > 0.0f && d2 > cutoff2) continue;
+        float mag  = k_r * weights[j] / sqrtf(d2 + sc2);
+        float invd = rsqrtf(d2 + 1e-9f);
+        f0 += mag * dr0 * invd;
+        f1 += mag * dr1 * invd;
+        f2 += mag * dr2 * invd;
+    }
+"""
+
+
+def make_kernel_src(linlog: bool = False) -> str:
+    """Return the kernel source with the requested repulsion formula."""
+    repulsion = _REPULSION_LINLOG if linlog else _REPULSION_STANDARD
+    return _KERNEL_SRC.replace(_REPULSION_STANDARD, repulsion)
+
+
 _KERNEL_SRC = r"""
 extern "C" __global__ void nbody_fused_step(
     const float* __restrict__ pos,            /* (N, 3)  input positions  */
@@ -42,7 +81,7 @@ extern "C" __global__ void nbody_fused_step(
     float f2 = gscale * dg2;
 
     /* ------------------------------------------------------------------
-       Pairwise repulsion — all N-1 neighbours
+       Pairwise repulsion — all N-1 neighbours (standard mode)
        F_i += k_r * w_i * w_j / (d^2 + sc^2) * (pos_i - pos_j) / |d|
        ------------------------------------------------------------------ */
     for (int j = 0; j < N; ++j) {

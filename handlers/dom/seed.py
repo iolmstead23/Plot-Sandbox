@@ -3,6 +3,8 @@ import numpy as np
 from packages.config import config
 from packages.dom import dom
 from packages.physics import initial_layout
+from packages.physics.layout import bfs_landmark_layout
+from ..state import node_temperature
 
 
 def seed_physics_dom(rng: np.random.Generator) -> None:
@@ -35,18 +37,30 @@ def seed_physics_dom(rng: np.random.Generator) -> None:
     else:
         weights = np.full(n, (sim.weight_min + sim.weight_max) / 2.0, dtype=np.float64)
 
-    positions = initial_layout(
-        weights,
-        view_range=config.render.view_range,
-        rng=rng,
-        inner_radius_fraction=sim.inner_radius_fraction,
-        outer_radius_fraction=sim.outer_radius_fraction,
-        dims=sim.dims,
-        layout_noise=sim.layout_noise,
-    )
+    if sim.layout_strategy == "bfs_landmark":
+        positions = bfs_landmark_layout(
+            n,
+            edges,
+            dims=sim.dims,
+            view_range=config.render.view_range,
+            rng=rng,
+            focus=config.physics.focus,
+        )
+    else:
+        positions = initial_layout(
+            weights,
+            view_range=config.render.view_range,
+            rng=rng,
+            inner_radius_fraction=sim.inner_radius_fraction,
+            outer_radius_fraction=sim.outer_radius_fraction,
+            dims=sim.dims,
+            layout_noise=sim.layout_noise,
+        )
 
     for i in range(n):
         dom.add_node(float(weights[i]), positions[i])
 
     for a, b in sorted(edges):
         dom.add_edge(a, b)
+
+    node_temperature.init(n)

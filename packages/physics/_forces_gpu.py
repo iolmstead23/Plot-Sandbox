@@ -23,6 +23,7 @@ def pairwise_repulsion_chunked_gpu(
     *,
     k_r: float,
     soft_core_radius: float,
+    linlog: bool = False,
 ) -> np.ndarray:
     """GPU repulsion: row-chunked to cap peak VRAM at O(_CHUNK*N*D).
 
@@ -49,15 +50,23 @@ def pairwise_repulsion_chunked_gpu(
 
         d_safe = xp.where(d2 > zero, xp.sqrt(d2), one)
         direction = diff / d_safe[..., None]
-        mag = one / (d2 + sc2)
 
         # Zero self-interaction using GPU-side arithmetic (avoids HtoD transfer).
         local_rows  = xp.arange(b, dtype=xp.int64)
         global_cols = local_rows + start
-        mag[local_rows, global_cols] = zero
 
-        mass_pair = weights[start:end, None] * weights[None, :]  # (B, N)
-        forces[start:end] = ((k_r * mag * mass_pair)[..., None] * direction).sum(axis=1)
+        if linlog:
+            d_lin = xp.sqrt(d2 + sc2)                  # always > 0
+            d_lin[local_rows, global_cols] = one        # avoid 1/0 on diagonal
+            mag = one / d_lin
+            mag[local_rows, global_cols] = zero
+            mass_j = weights[None, :]                   # (1, N) radiating-node weight
+            forces[start:end] = ((k_r * mag * mass_j)[..., None] * direction).sum(axis=1)
+        else:
+            mag = one / (d2 + sc2)
+            mag[local_rows, global_cols] = zero
+            mass_pair = weights[start:end, None] * weights[None, :]  # (B, N)
+            forces[start:end] = ((k_r * mag * mass_pair)[..., None] * direction).sum(axis=1)
 
     return forces
 

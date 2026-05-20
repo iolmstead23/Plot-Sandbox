@@ -29,6 +29,7 @@ def relax_step(
     dt: float,
     temperature: float,
     params: dict,
+    node_heat: np.ndarray | None = None,
 ) -> np.ndarray:
     xp = get_module(positions)
 
@@ -79,6 +80,7 @@ def relax_step(
             bh_threshold=p["bh_threshold"],
             bh_theta=p["bh_theta"],
             cpu_sparse_threshold=p.get("cpu_sparse_threshold", 150),
+            linlog=bool(p.get("linlog_repulsion", False)),
         )
         + attract
     )
@@ -90,7 +92,8 @@ def relax_step(
 
     F[pinned] = 0.0
 
-    step = F * dt * temperature
+    heat = (node_heat[:, None] if node_heat is not None else 1.0)
+    step = F * dt * temperature * heat
     step_norms = xp.linalg.norm(step, axis=1, keepdims=True)
     step_scale = xp.minimum(
         1.0, p["max_step"] / xp.where(step_norms > 0.0, step_norms, 1.0)

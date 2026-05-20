@@ -1,7 +1,9 @@
 import random
 import string
+import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 
@@ -29,7 +31,6 @@ def on_converged() -> None:
     if not config.velocimetry.enabled or _recorder.is_empty() or _converged_fired:
         return
     _converged_fired = True
-    import threading
     threading.Thread(target=_flush, daemon=True, name="vel-flush").start()
 
 
@@ -41,8 +42,6 @@ def reset() -> None:
 
 
 def _flush() -> None:
-    from pathlib import Path
-
     end_time = time.time()
     duration = end_time - _start_time if _start_time is not None else 0.0
 
